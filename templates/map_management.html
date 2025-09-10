@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地图管理 - 城市智能体仿真系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .main-container {
+            padding: 20px;
+        }
+        
+        .header-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        }
+        
+        .scenario-card {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .scenario-card:hover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        
+        .scenario-card.active {
+            border-color: #28a745;
+            background-color: #d4edda;
+        }
+        
+        .btn-custom {
+            border-radius: 25px;
+            padding: 10px 25px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary-custom {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            border: none;
+            color: white;
+        }
+        
+        .btn-primary-custom:hover {
+            background: linear-gradient(45deg, #0056b3, #004085);
+            transform: translateY(-2px);
+        }
+        
+        .btn-success-custom {
+            background: linear-gradient(45deg, #28a745, #1e7e34);
+            border: none;
+            color: white;
+        }
+        
+        .btn-danger-custom {
+            background: linear-gradient(45deg, #dc3545, #c82333);
+            border: none;
+            color: white;
+        }
+        
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-inactive {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .preview-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 2px dashed #dee2e6;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .preview-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .statistics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-item {
+            background: linear-gradient(45deg, #f8f9fa, #e9ecef);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        
+        .loading-spinner {
+            display: none;
+        }
+        
+        .format-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .format-option {
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .format-option:hover {
+            border-color: #007bff;
+            background-color: #f8f9fa;
+        }
+        
+        .format-option.selected {
+            border-color: #28a745;
+            background-color: #d4edda;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid main-container">
+        <!-- 页面标题 -->
+        <div class="header-section">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-3">
+                        <i class="fas fa-map-marked-alt text-primary"></i>
+                        地图管理系统
+                    </h1>
+                    <p class="lead mb-0">管理地图文件、创建场景配置、切换仿真环境</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-primary-custom btn-custom" onclick="window.location.href='/'">
+                        <i class="fas fa-home"></i> 返回主页
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row">
+            <!-- 左侧：场景管理 -->
+            <div class="col-lg-6">
+                <div class="feature-card">
+                    <h3 class="mb-4">
+                        <i class="fas fa-layer-group text-success"></i>
+                        场景管理
+                    </h3>
+                    
+                    <!-- 当前场景显示 -->
+                    <div class="mb-4">
+                        <h5>当前活动场景</h5>
+                        <div id="currentScenarioDisplay" class="alert alert-info">
+                            <i class="fas fa-spinner fa-spin"></i> 加载中...
+                        </div>
+                    </div>
+                    
+                    <!-- 场景列表 -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5>可用场景</h5>
+                            <button class="btn btn-success-custom btn-sm" data-bs-toggle="modal" data-bs-target="#createScenarioModal">
+                                <i class="fas fa-plus"></i> 创建场景
+                            </button>
+                        </div>
+                        <div id="scenariosList" class="mb-3">
+                            <div class="text-center">
+                                <i class="fas fa-spinner fa-spin"></i> 加载场景列表...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 场景操作按钮 -->
+                    <div class="d-flex gap-2">
+                        <button id="refreshScenariosBtn" class="btn btn-outline-primary btn-custom">
+                            <i class="fas fa-sync-alt"></i> 刷新列表
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧：地图工具 -->
+            <div class="col-lg-6">
+                <div class="feature-card">
+                    <h3 class="mb-4">
+                        <i class="fas fa-tools text-warning"></i>
+                        地图工具
+                    </h3>
+                    
+                    <!-- 地图格式转换 -->
+                    <div class="mb-4">
+                        <h5>格式转换</h5>
+                        <div class="mb-3">
+                            <label class="form-label">选择地图文件</label>
+                            <input type="file" id="convertFileInput" class="form-control" accept=".npy,.csv,.png,.jpg,.jpeg,.txt">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">目标格式</label>
+                            <div class="format-selector">
+                                <div class="format-option" data-format="numpy">
+                                    <i class="fas fa-file-code"></i><br>NumPy
+                                </div>
+                                <div class="format-option" data-format="csv">
+                                    <i class="fas fa-file-csv"></i><br>CSV
+                                </div>
+                                <div class="format-option" data-format="image">
+                                    <i class="fas fa-file-image"></i><br>图像
+                                </div>
+                                <div class="format-option" data-format="geojson">
+                                    <i class="fas fa-map"></i><br>GeoJSON
+                                </div>
+                            </div>
+                        </div>
+                        <button id="convertMapBtn" class="btn btn-primary-custom btn-custom" disabled>
+                            <i class="fas fa-exchange-alt"></i> 转换格式
+                        </button>
+                    </div>
+                    
+                    <!-- 地图预览 -->
+                    <div class="mb-4">
+                        <h5>地图预览</h5>
+                        <div class="mb-3">
+                            <label class="form-label">选择地图文件</label>
+                            <input type="file" id="previewFileInput" class="form-control" accept=".npy,.csv,.png,.jpg,.jpeg">
+                        </div>
+                        <button id="createPreviewBtn" class="btn btn-primary-custom btn-custom" disabled>
+                            <i class="fas fa-eye"></i> 生成预览
+                        </button>
+                    </div>
+                    
+                    <!-- 预览显示区域 -->
+                    <div id="previewContainer" class="preview-container" style="display: none;">
+                        <p class="text-muted">预览图将在这里显示</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 统计信息 -->
+        <div class="feature-card">
+            <h3 class="mb-4">
+                <i class="fas fa-chart-bar text-info"></i>
+                统计信息
+            </h3>
+            <div id="statisticsContainer" class="statistics-grid">
+                <div class="stat-item">
+                    <div class="stat-number">-</div>
+                    <div class="stat-label">总场景数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">-</div>
+                    <div class="stat-label">总地图数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">-</div>
+                    <div class="stat-label">存储大小(MB)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">-</div>
+                    <div class="stat-label">支持格式数</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 创建场景模态框 -->
+    <div class="modal fade" id="createScenarioModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-plus-circle"></i> 创建新场景
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createScenarioForm">
+                        <div class="mb-3">
+                            <label class="form-label">场景名称</label>
+                            <input type="text" id="scenarioName" class="form-control" placeholder="输入场景名称" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">场景描述</label>
+                            <textarea id="scenarioDescription" class="form-control" rows="3" placeholder="描述场景用途和特点"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">地图文件</label>
+                            <div id="mapFilesContainer">
+                                <p class="text-muted">请先上传地图文件到文件管理系统</p>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" id="saveScenarioBtn" class="btn btn-success-custom">
+                        <i class="fas fa-save"></i> 创建场景
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 加载提示模态框 -->
+    <div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-body text-center">
+                    <div class="spinner-border text-primary mb-3" role="status"></div>
+                    <p id="loadingMessage">处理中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/map_management.js"></script>
+</body>
+</html>

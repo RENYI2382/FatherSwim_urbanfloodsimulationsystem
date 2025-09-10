@@ -1,0 +1,31 @@
+发达水FatherSwim - 智能洪灾仿真系统
+
+版本: 1.0.0
+发布日期: 2025年1月
+
+更新内容:
+✅ 完整的多智能体洪灾仿真系统
+✅ 基于差序格局理论的社会网络建模
+✅ 交互式地图编辑和可视化
+✅ 实时仿真控制和时间轴操作
+✅ 多维度智能体状态显示
+✅ 动态洪水蔓延模拟
+✅ 增强的用户界面和交互体验
+✅ 完整的安全机制和错误处理
+✅ 跨平台支持 (Windows/Mac/Linux)
+
+技术栈:
+- 后端: Python 3.8+, Flask, SocketIO
+- 前端: HTML5, CSS3, JavaScript, Leaflet
+- 可视化: D3.js, Chart.js
+- 地图服务: OpenStreetMap, Leaflet
+
+系统要求:
+- Python 3.8+
+- 内存: 4GB+ (推荐8GB+)
+- 浏览器: Chrome 90+, Firefox 88+, Safari 14+
+
+许可证: 学术研究和教育用途
+
+联系方式:
+项目团队: 发达水FatherSwim开发组

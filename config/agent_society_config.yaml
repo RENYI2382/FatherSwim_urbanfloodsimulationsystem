@@ -1,0 +1,133 @@
+# Agent Society平台推理模型配置
+# 专门用于Agent Society平台运行环境
+
+# Silicon Flow API配置
+silicon_flow:
+  base_url: "https://api.siliconflow.cn/v1/"
+  api_key: "${SILICON_FLOW_API_KEY}"  # 从环境变量获取API密钥
+  timeout: 60
+  max_retries: 3
+  retry_delay: 1.0
+
+# 默认推理模型
+default_model: "deepseek-r1"
+
+# 推理模型配置
+models:
+  deepseek-r1:
+    model_name: "deepseek-ai/DeepSeek-R1"  # 使用非Pro版本，支持赠送余额
+    display_name: "DeepSeek-R1 推理模型"
+    description: "支持思维链推理的高级模型"
+    temperature: 0.6
+    top_p: 0.95
+    max_tokens: 4096
+    thinking_budget: 2048  # 思维链token预算
+    supports_reasoning: true
+    
+  qwen-reasoning:
+    model_name: "Qwen/Qwen2.5-72B-Instruct"
+    display_name: "Qwen2.5-72B 推理版"
+    description: "高性能通用推理模型"
+    temperature: 0.7
+    top_p: 0.9
+    max_tokens: 4096
+    thinking_budget: 1024
+    supports_reasoning: false
+
+# 推理配置
+reasoning:
+  max_reasoning_steps: 5
+  min_reasoning_steps: 1
+  confidence_threshold: 0.7
+  enable_self_correction: true
+  enable_verification: true
+  timeout_seconds: 120
+  
+# Agent Society平台配置
+agent_society:
+  platform_url: "https://agent-society.org/api/v1"
+  api_key: "${AGENT_SOCIETY_API_KEY}"  # 从环境变量获取API密钥
+  project_id: "flood-abm-reasoning"
+  simulation_id: "hurricane-evacuation-001"
+  max_agents: 1000
+  time_steps: 100
+  enable_reasoning: true
+  reasoning_frequency: 5  # 每5步进行一次推理
+  
+# 应用场景配置
+scenarios:
+  hurricane_evacuation:
+    model: "deepseek-r1"
+    reasoning_steps: 3
+    confidence_threshold: 0.8
+    timeout: 60
+    
+  risk_assessment:
+    model: "deepseek-r1"
+    reasoning_steps: 2
+    confidence_threshold: 0.7
+    timeout: 45
+
+# 提示词模板
+prompts:
+  hurricane_risk_assessment: |
+    你是一个专业的飓风风险评估专家。请基于以下信息评估飓风风险：
+    
+    天气数据：{weather_data}
+    位置数据：{location_data}
+    
+    请进行深度推理分析，考虑以下因素：
+    1. 飓风强度和路径
+    2. 地理位置风险
+    3. 基础设施脆弱性
+    4. 历史灾害数据
+    
+    请提供：
+    - 风险等级（1-10）
+    - 详细分析过程
+    - 建议措施
+    
+  evacuation_decision: |
+    你是一个智能疏散决策助手。请基于以下信息做出疏散决策：
+    
+    风险评估：{risk_assessment}
+    社会背景：{social_context}
+    资源状况：{resource_context}
+    
+    请进行推理分析，考虑：
+    1. 个人和家庭安全
+    2. 经济成本
+    3. 社会责任
+    4. 可用资源
+    
+    请提供：
+    - 是否疏散的决策
+    - 决策理由
+    - 行动建议
+
+# 性能监控
+monitoring:
+  enable_metrics: true
+  log_level: "INFO"
+  save_reasoning_logs: true
+  max_log_size_mb: 100
+  
+# 缓存配置
+caching:
+  enable_cache: true
+  cache_ttl_seconds: 3600
+  max_cache_size: 1000
+  
+# 错误处理
+error_handling:
+  max_retries: 3
+  retry_delay: 2.0
+  fallback_model: "qwen-reasoning"
+  enable_graceful_degradation: true
+  
+# 调试配置
+debug:
+  enable_debug: false
+  save_requests: false
+  save_responses: false
+  verbose_logging: false

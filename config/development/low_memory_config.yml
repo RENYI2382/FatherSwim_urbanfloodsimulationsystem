@@ -1,0 +1,43 @@
+# 低内存配置 - 适用于内存受限环境
+llm:
+  - api_key: "${SILICON_FLOW_API_KEY}"
+    model: "deepseek-ai/DeepSeek-V3"
+    provider: "siliconflow"
+    semaphore: 10  # 减少并发数
+    temperature: 0.7
+    max_tokens: 1000
+    timeout: 30
+    max_retries: 2
+
+# 环境配置
+env:
+  # 数据库配置
+  db:
+    enabled: true
+    type: "sqlite"
+    path: "data/agentsociety.db"
+  
+  # AgentSociety数据目录
+  home_dir: ".agentsociety-benchmark/agentsociety_data"
+  
+  # 日志配置
+  logging:
+    level: "WARNING"  # 减少日志输出
+    file: "logs/hurricane_agent.log"
+
+# 智能体配置
+agent:
+  hurricane_mobility:
+    enhanced_mode: false  # 关闭增强模式
+    use_llm: true
+    thresholds:
+      risk_assessment: 0.6
+      evacuation_decision: 0.7
+      mobility_planning: 0.5
+    social_influence_weight: 0.3
+
+# 系统配置
+system:
+  data_dir: "data"
+  results_dir: "results"
+  logs_dir: "logs"

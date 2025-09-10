@@ -1,0 +1,99 @@
+# 智能批量处理配置
+batch_processing:
+  # 基础配置
+  initial_batch_size: 3          # 初始批量大小
+  max_batch_size: 8              # 最大批量大小
+  min_batch_size: 1              # 最小批量大小
+  max_concurrent: 5              # 最大并发数
+  
+  # 延迟配置
+  initial_delay: 1.0             # 初始延迟(秒)
+  max_delay: 8.0                 # 最大延迟(秒)
+  min_delay: 0.5                 # 最小延迟(秒)
+  
+  # 重试配置
+  max_retries: 2                 # 最大重试次数
+  retry_backoff: 1.5             # 重试退避倍数
+  
+  # 失败处理
+  failure_threshold: 3           # 连续失败阈值
+  auto_pause_enabled: true       # 启用自动暂停
+  emergency_stop_threshold: 10   # 紧急停止阈值
+  
+  # 自适应调整
+  adaptive_sizing: true          # 启用自适应批量大小
+  performance_window: 50         # 性能统计窗口大小
+  adjustment_sensitivity: 0.1    # 调整敏感度
+  
+  # 优先级配置
+  priority_weights:
+    evacuation: 3                # 疏散决策权重
+    mobility: 2                  # 移动规划权重
+    risk_assessment: 1           # 风险评估权重
+  
+  # 监控配置
+  monitoring:
+    status_report_interval: 10   # 状态报告间隔(秒)
+    performance_log_enabled: true
+    failure_log_enabled: true
+    detailed_timing: false
+  
+  # 资源限制
+  resource_limits:
+    max_memory_usage: 512        # 最大内存使用(MB)
+    max_queue_size: 1000         # 最大队列大小
+    request_timeout: 30          # 请求超时(秒)
+    
+# API调用配置
+api_integration:
+  # 推理模型配置
+  reasoning_models:
+    evacuation_model: "deepseek-r1"
+    mobility_model: "qwen-reasoning"
+    risk_model: "deepseek-r1"
+  
+  # 超时配置
+  timeouts:
+    evacuation: 45               # 疏散决策超时
+    mobility: 30                 # 移动规划超时
+    risk_assessment: 25          # 风险评估超时
+  
+  # 回退配置
+  fallback:
+    enabled: true
+    use_cache: true
+    cache_ttl: 300               # 缓存生存时间(秒)
+    
+# 错误恢复配置
+error_recovery:
+  # 自动修复
+  auto_repair:
+    enabled: true
+    repair_strategies:
+      - "adjust_timeout"
+      - "reduce_batch_size"
+      - "increase_delay"
+      - "switch_model"
+  
+  # 健康检查
+  health_check:
+    enabled: true
+    interval: 60                 # 健康检查间隔(秒)
+    failure_threshold: 3
+    recovery_threshold: 2
+  
+  # 断路器模式
+  circuit_breaker:
+    enabled: true
+    failure_threshold: 5         # 失败阈值
+    recovery_timeout: 300        # 恢复超时(秒)
+    half_open_max_calls: 3       # 半开状态最大调用数
+
+# 日志配置
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file_enabled: true
+  file_path: "logs/batch_processor.log"
+  max_file_size: 10485760        # 10MB
+  backup_count: 5

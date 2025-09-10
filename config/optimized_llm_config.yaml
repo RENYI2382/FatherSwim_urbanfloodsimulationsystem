@@ -1,0 +1,125 @@
+# 基于官方指南优化的LLM配置文件
+# 整合Silicon Flow、vLLM、智普等多种API配置
+
+# 智能体LLM配置
+agent_llm:
+  decision_prompts:
+    risk_assessment: |
+      你是飓风风险评估专家。请根据以下信息评估风险等级(0-1)：
+      
+      天气：{weather_data}
+      位置：{current_location}
+      个人：年龄{age}，收入{income_level}，家庭{family_size}人，有车：{has_vehicle}，风险偏好：{risk_aversion}
+      
+      请严格按照JSON格式回复：{{"risk_score": 0.0-1.0, "reasoning": "详细原因"}}
+    
+    evacuation_decision: |
+      你是疏散决策专家。请决定是否疏散：
+      
+      风险评分：{risk_score}
+      当前位置：{current_location}
+      个人特征：{agent_profile}
+      社会影响：{social_influence}
+      
+      请严格按照JSON格式回复：{{"should_evacuate": true/false, "confidence": 0.0-1.0, "reasoning": "详细原因"}}
+    
+    mobility_planning: |
+      你是移动规划专家。请选择最佳目的地：
+      
+      当前位置：{current_location}
+      可选目的地：{available_aois}
+      是否疏散：{should_evacuate}
+      天气：{weather_data}
+      
+      请严格按照JSON格式回复：{{"destination_aoi": AOI_ID或null, "reasoning": "详细原因"}}
+
+  llm_calls:
+    batch_size: 1
+    cache_ttl: 600
+    enable_caching: true
+    enable_fallback: true
+    fallback_to_traditional: true
+    max_concurrent_requests: 5
+    parallel_requests: false
+
+# 主LLM配置
+llm:
+  # API通用配置
+  api:
+    circuit_breaker_threshold: 10
+    fallback_enabled: true
+    max_retries: 5
+    max_tokens: 1024
+    retry_delay: 2.0
+    temperature: 0.3
+    timeout: 60
+    top_p: 0.7
+    top_k: 50
+    frequency_penalty: 0.5
+
+  # Silicon Flow 免费模型配置 (主要)
+  silicon_flow:
+    api_key: "${SILICON_FLOW_API_KEY}"  # 从环境变量读取
+    base_url: "https://api.siliconflow.cn/v1"
+    model: "deepseek-ai/DeepSeek-V2.5"  # 免费模型
+    enable_thinking: false  # 免费模型通常不支持thinking模式
+    min_p: 0.05
+    timeout: 60
+    max_retries: 3
+
+  # vLLM自托管配置 (备选1)
+  vllm_server:
+    api_key: "dummy_key"
+    base_url: "http://localhost:8000/v1"
+    host: "0.0.0.0"
+    port: 8000
+    model: "Qwen/Qwen2.5-7B-Instruct"
+    enable_auto_tool_choice: true
+    guided_decoding_backend: "outlines"
+    tool_call_parser: "hermes"
+    timeout: 45
+
+  # 智普配置 (备选2)
+  zhipu:
+    api_key: "${ZHIPU_API_KEY}"  # 从环境变量读取
+    base_url: "https://open.bigmodel.cn/api/paas/v4/"
+    model: "glm-4-air"
+    max_retries: 3
+    timeout: 30
+
+  # Anthropic格式配置 (备选3)
+  anthropic:
+    api_key: "${SILICON_FLOW_API_KEY}"  # 从环境变量读取
+    base_url: "https://api.siliconflow.cn"
+    model: "Pro/moonshotai/Kimi-K2-Instruct"
+    max_tokens: 8192
+    timeout: 45
+
+  # 模型优先级配置
+  fallback_order:
+    - "silicon_flow"
+    - "vllm_server"
+    - "zhipu"
+    - "anthropic"
+
+  # 性能优化配置
+  optimization:
+    enable_streaming: false
+    enable_caching: true
+    cache_ttl: 600
+    connection_pool_size: 10
+    request_timeout: 60
+    
+# 监控和日志配置
+monitoring:
+  enable_metrics: true
+  log_level: "INFO"
+  performance_tracking: true
+  error_reporting: true
+  
+# 安全配置
+security:
+  api_key_rotation: false
+  rate_limiting: true
+  request_validation: true
+  response_sanitization: true

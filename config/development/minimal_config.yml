@@ -1,0 +1,24 @@
+llm:
+  - provider: "openai"
+    model: "gpt-4o-mini"
+    api_key: "sk-xxx"  # 替换为你的API密钥
+
+# 极简实验配置
+experiment:
+  name: "hurricane_mobility_minimal"
+  description: "Minimal test for 16GB systems - 3 agents only"
+  
+# 极简设置
+memory_optimization:
+  max_agents: 3       # 只运行3个智能体
+  batch_size: 1       # 最小批处理
+  
+# Ray配置优化
+ray_config:
+  object_store_memory: 1000000000  # 1GB
+  num_cpus: 2         # 限制CPU使用
+  
+# 日志配置
+logging:
+  level: "ERROR"      # 只记录错误
+  file: "logs/minimal_benchmark.log"

@@ -1,0 +1,385 @@
+# 学术研究实验配置
+# 基于差序格局理论的洪灾ABM仿真实验配置
+
+experiment_metadata:
+  title: "基于差序格局理论的洪灾应对行为ABM仿真研究"
+  description: "验证费孝通差序格局理论在灾害应对中的社会行为模式"
+  principal_investigator: "研究团队"
+  version: "1.0.0"
+  created_date: "2024-01-01"
+  last_updated: "2024-01-01"
+
+# 实验设计参数
+experimental_design:
+  # 研究假设
+  hypotheses:
+    H1:
+      description: "强差序格局策略在灾害初期具有更高的生存率"
+      null_hypothesis: "μ_strong_differential = μ_weak_differential = μ_universalism"
+      alternative_hypothesis: "μ_strong_differential > μ_weak_differential, μ_strong_differential > μ_universalism"
+      significance_level: 0.05
+      power_analysis:
+        desired_power: 0.80
+        effect_size: 0.3
+        estimated_sample_size: 1000
+    
+    H2:
+      description: "弱差序格局策略在长期灾害中表现出更好的适应性"
+      null_hypothesis: "长期生存率无显著差异"
+      alternative_hypothesis: "弱差序格局策略长期生存率更高"
+      significance_level: 0.05
+      analysis_method: "Cox比例风险模型"
+    
+    H3:
+      description: "普遍主义策略在资源分配上表现出更小的不平等"
+      null_hypothesis: "资源分配方差无显著差异"
+      alternative_hypothesis: "普遍主义策略资源分配更平等"
+      significance_level: 0.05
+      test_method: "Levene检验"
+
+# 实验条件配置
+experimental_conditions:
+  # 策略类型
+  strategy_types:
+    strong_differential:
+      name: "强差序格局"
+      description: "严格遵循费孝通差序格局理论，优先考虑亲密关系"
+      parameters:
+        family_weight: 0.9
+        neighbor_weight: 0.6
+        colleague_weight: 0.4
+        stranger_weight: 0.1
+        decision_threshold: 0.8
+    
+    weak_differential:
+      name: "弱差序格局"
+      description: "相对宽松的差序格局，考虑更多社会关系"
+      parameters:
+        family_weight: 0.7
+        neighbor_weight: 0.5
+        colleague_weight: 0.5
+        stranger_weight: 0.3
+        decision_threshold: 0.6
+    
+    universalism:
+      name: "普遍主义"
+      description: "平等对待所有社会联系，不考虑亲疏关系"
+      parameters:
+        family_weight: 0.5
+        neighbor_weight: 0.5
+        colleague_weight: 0.5
+        stranger_weight: 0.5
+        decision_threshold: 0.5
+
+# 人口学特征配置
+demographics:
+  age_groups:
+    young_adult:
+      range: [18, 35]
+      proportion: 0.30
+      characteristics:
+        mobility: 0.9
+        risk_tolerance: 0.7
+        social_connectivity: 0.8
+    
+    middle_aged:
+      range: [36, 55]
+      proportion: 0.40
+      characteristics:
+        mobility: 0.7
+        risk_tolerance: 0.5
+        social_connectivity: 0.7
+    
+    senior:
+      range: [56, 75]
+      proportion: 0.30
+      characteristics:
+        mobility: 0.4
+        risk_tolerance: 0.3
+        social_connectivity: 0.6
+
+  income_levels:
+    low:
+      range: [0, 3000]
+      proportion: 0.35
+      characteristics:
+        resource_access: 0.3
+        information_access: 0.4
+        social_capital: 0.4
+    
+    medium:
+      range: [3001, 8000]
+      proportion: 0.45
+      characteristics:
+        resource_access: 0.6
+        information_access: 0.7
+        social_capital: 0.6
+    
+    high:
+      range: [8001, 20000]
+      proportion: 0.20
+      characteristics:
+        resource_access: 0.9
+        information_access: 0.9
+        social_capital: 0.8
+
+# 网络结构配置
+network_structure:
+  # 差序格局网络层次
+  differential_layers:
+    family:
+      layer: 1
+      max_connections: 5
+      strength_range: [0.8, 1.0]
+      decay_rate: 0.1
+    
+    neighbors:
+      layer: 2
+      max_connections: 10
+      strength_range: [0.5, 0.8]
+      decay_rate: 0.2
+    
+    colleagues:
+      layer: 3
+      max_connections: 15
+      strength_range: [0.3, 0.7]
+      decay_rate: 0.3
+    
+    community:
+      layer: 4
+      max_connections: 20
+      strength_range: [0.1, 0.5]
+      decay_rate: 0.4
+
+# 灾害场景配置
+disaster_scenarios:
+  # 洪水参数
+  flood_parameters:
+    severity_levels:
+      mild:
+        water_level: 0.5
+        duration: 6
+        impact_radius: 500
+        evacuation_window: 3
+      
+      moderate:
+        water_level: 1.5
+        duration: 12
+        impact_radius: 1000
+        evacuation_window: 6
+      
+      severe:
+        water_level: 3.0
+        duration: 24
+        impact_radius: 2000
+        evacuation_window: 12
+    
+    spatial_distribution:
+      type: "concentric_circles"
+      center: [0, 0]
+      propagation_speed: 100  # meters per hour
+
+# 实验运行参数
+simulation_parameters:
+  # 实验规模
+  sample_sizes:
+    pilot_study: 100
+    main_study: 1000
+    large_scale: 5000
+  
+  # 运行时长
+  simulation_duration:
+    short_term: 50  # steps
+    medium_term: 100
+    long_term: 200
+  
+  # 重复次数
+  replications:
+    pilot: 10
+    main: 50
+    validation: 100
+  
+  # 随机种子
+  random_seeds:
+    - 42
+    - 12345
+    - 98765
+    - 11111
+    - 22222
+
+# 数据收集配置
+data_collection:
+  # 测量指标
+  primary_outcomes:
+    - name: "survival_rate"
+      description: "疏散成功率"
+      measurement_level: "individual"
+      data_type: "binary"
+    
+    - name: "survival_time"
+      description: "生存时间（仿真步数）"
+      measurement_level: "individual"
+      data_type: "continuous"
+    
+    - name: "resource_utilization"
+      description: "资源利用效率"
+      measurement_level: "individual"
+      data_type: "ratio"
+  
+  secondary_outcomes:
+    - name: "network_density"
+      description: "社交网络密度"
+      measurement_level: "network"
+      data_type: "continuous"
+    
+    - name: "decision_time"
+      description: "决策时间"
+      measurement_level: "individual"
+      data_type: "continuous"
+    
+    - name: "help_requests"
+      description: "求助请求次数"
+      measurement_level: "individual"
+      data_type: "count"
+
+# 统计分析配置
+statistical_analysis:
+  # 显著性水平
+  alpha_levels:
+    primary: 0.05
+    secondary: 0.01
+    exploratory: 0.10
+  
+  # 多重比较校正
+  multiple_comparisons:
+    method: "bonferroni"
+    family_wise_error_rate: 0.05
+  
+  # 效应量计算
+  effect_sizes:
+    cohens_d:
+      small: 0.2
+      medium: 0.5
+      large: 0.8
+    
+    odds_ratio:
+      small: 1.5
+      medium: 3.0
+      large: 5.0
+  
+  # 统计功效分析
+  power_analysis:
+    minimum_power: 0.80
+    effect_size_type: "medium"
+    alpha: 0.05
+
+# 质量控制
+quality_control:
+  # 数据验证
+  validation_checks:
+    - "missing_data_rate < 0.05"
+    - "outlier_detection: z_score > 3"
+    - "consistency_checks: logical_relationships"
+    - "range_checks: parameter_bounds"
+  
+  # 收敛性检验
+  convergence_criteria:
+    - "parameter_stability: < 0.01"
+    - "statistical_power: > 0.80"
+    - "effect_size_stability: < 0.05"
+  
+  # 敏感性分析
+  sensitivity_analysis:
+    parameters:
+      - "network_density_range: [0.1, 0.3]"
+      - "relationship_strength_range: [0.3, 0.9]"
+      - "decision_threshold_range: [0.4, 0.8]"
+    
+    scenarios:
+      - "best_case"
+      - "worst_case"
+      - "realistic_case"
+
+# 报告生成配置
+reporting:
+  # 报告结构
+  sections:
+    - "executive_summary"
+    - "methodology"
+    - "results"
+    - "discussion"
+    - "limitations"
+    - "conclusions"
+    - "references"
+  
+  # 图表配置
+  figure_settings:
+    format: "png"
+    dpi: 300
+    size: [8, 6]
+    style: "academic"
+  
+  # 统计报告
+  statistical_reporting:
+    include:
+      - "descriptive_statistics"
+      - "hypothesis_tests"
+      - "effect_sizes"
+      - "confidence_intervals"
+      - "model_fit_statistics"
+    
+    format: "APA_style"
+    significance_markers: "*p < 0.05, **p < 0.01, ***p < 0.001"
+
+# 伦理考虑
+ethics:
+  # 数据隐私
+  privacy_protection:
+    - "anonymization"
+    - "data_minimization"
+    - "secure_storage"
+  
+  # 透明度
+  transparency:
+    - "open_code"
+    - "reproducible_analysis"
+    - "clear_documentation"
+  
+  # 偏见控制
+  bias_mitigation:
+    - "representative_sampling"
+    - "sensitivity_analysis"
+    - "validation_with_real_data"
+
+# 可重复性保证
+reproducibility:
+  # 版本控制
+  version_control:
+    code_version: "v1.0.0"
+    data_version: "v1.0.0"
+    analysis_version: "v1.0.0"
+  
+  # 环境配置
+  environment:
+    python_version: "3.8+"
+    required_packages:
+      - "numpy>=1.19.0"
+      - "pandas>=1.3.0"
+      - "scipy>=1.7.0"
+      - "statsmodels>=0.12.0"
+      - "lifelines>=0.26.0"
+      - "matplotlib>=3.3.0"
+      - "seaborn>=0.11.0"
+    
+    # 计算环境
+    hardware:
+      memory: "8GB+"
+      cpu_cores: "4+"
+      gpu: "optional"
+  
+  # 文档化
+  documentation:
+    - "README.md"
+    - "methodology_guide.md"
+    - "analysis_protocol.md"
+    - "replication_guide.md"

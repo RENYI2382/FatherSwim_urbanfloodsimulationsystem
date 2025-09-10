@@ -1,0 +1,219 @@
+# Mobilkit框架集成配置文件
+# 用于配置Mobilkit与洪灾ABM仿真系统的集成参数
+
+# 基础配置
+mobilkit:
+  # 是否启用Mobilkit集成
+  enabled: true
+  
+  # 版本信息
+  version: "0.2.8"
+  
+  # 分布式计算配置
+  distributed:
+    enabled: true
+    scheduler_address: "localhost:8786"
+    max_workers: 4
+    memory_limit: "2GB"
+    processes: true
+    timeout: "30s"
+    
+  # 空间分析配置
+  spatial:
+    # 空间分辨率（米）
+    resolution: 100.0
+    
+    # 网格化参数
+    tessellation:
+      enable_caching: true
+      cache_size: 1000
+      partitions_auto: true
+      
+    # 邻居搜索配置
+    neighbor_search:
+      default_radius: 1000.0  # 米
+      max_neighbors: 50
+      use_spatial_index: true
+      
+  # 移动性分析配置
+  mobility:
+    # 位移分析参数
+    displacement:
+      min_points: 5
+      time_threshold: "1H"  # 1小时
+      distance_threshold: 100  # 米
+      
+    # 统计分析参数
+    statistics:
+      enable_user_stats: true
+      enable_clustering: true
+      min_cluster_size: 10
+      
+    # 轨迹分析参数
+    trajectory:
+      smoothing_window: 5
+      outlier_detection: true
+      outlier_threshold: 3.0  # 标准差倍数
+      
+  # 可视化配置
+  visualization:
+    enabled: true
+    
+    # 密度图配置
+    density_map:
+      bins: 50
+      radius: 1000  # 米
+      colormap: "viridis"
+      alpha: 0.7
+      
+    # 边界地图配置
+    boundary_map:
+      line_width: 2
+      edge_color: "black"
+      face_color: "lightblue"
+      alpha: 0.5
+      
+    # 对比图配置
+    comparison_plot:
+      figure_size: [12, 8]
+      scatter_size: 20
+      line_width: 2
+      
+  # 性能优化配置
+  performance:
+    # 缓存配置
+    caching:
+      enabled: true
+      max_size: 1000
+      ttl: 3600  # 秒
+      
+    # 数据处理阈值
+    thresholds:
+      small_data: 1000      # 小数据集阈值
+      medium_data: 10000    # 中等数据集阈值
+      large_data: 100000    # 大数据集阈值
+      
+    # 并行处理配置
+    parallel:
+      chunk_size: 10000
+      max_chunks: 10
+      enable_progress_bar: true
+      
+  # 数据格式配置
+  data_formats:
+    # 输入数据格式
+    input:
+      required_columns: ["uid", "lat", "lon", "datetime"]
+      optional_columns: ["homelat", "homelon", "date"]
+      datetime_format: "%Y-%m-%d %H:%M:%S"
+      
+    # 输出数据格式
+    output:
+      precision: 6  # 坐标精度
+      include_metadata: true
+      export_formats: ["json", "csv", "parquet"]
+      
+# ABM系统集成配置
+abm_integration:
+  # 智能体数据映射
+  agent_mapping:
+    # 字段映射关系
+    field_mapping:
+      agent_id: "uid"
+      latitude: "lat"
+      longitude: "lon"
+      timestamp: "datetime"
+      home_lat: "homelat"
+      home_lon: "homelon"
+      
+    # 数据转换配置
+    data_conversion:
+      coordinate_system: "WGS84"
+      time_zone: "UTC"
+      precision_digits: 6
+      
+  # 空间建模集成
+  spatial_modeling:
+    # 与SpatialMovementModeling的集成
+    movement_integration:
+      enable_mobilkit_routing: true
+      use_advanced_metrics: true
+      cache_route_calculations: true
+      
+    # 位置服务集成
+    location_services:
+      enable_tessellation: true
+      enable_clustering: true
+      enable_density_analysis: true
+      
+  # 决策支持集成
+  decision_support:
+    # 风险评估增强
+    risk_assessment:
+      use_mobility_patterns: true
+      historical_data_weight: 0.7
+      real_time_data_weight: 0.3
+      
+    # 疏散建模增强
+    evacuation_modeling:
+      use_crowd_dynamics: true
+      optimize_routes: true
+      consider_capacity: true
+      
+# 日志配置
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # 模块特定日志级别
+  loggers:
+    mobilkit_integration: "INFO"
+    spatial_analysis: "DEBUG"
+    mobility_analysis: "INFO"
+    visualization: "WARNING"
+    
+# 错误处理配置
+error_handling:
+  # 回退策略
+  fallback:
+    enable_basic_processing: true
+    log_fallback_usage: true
+    
+  # 重试配置
+  retry:
+    max_attempts: 3
+    backoff_factor: 2
+    timeout: 30
+    
+  # 异常处理
+  exceptions:
+    ignore_minor_errors: true
+    raise_on_critical_errors: true
+    
+# 开发和调试配置
+development:
+  debug_mode: false
+  profile_performance: false
+  save_intermediate_results: false
+  
+  # 测试配置
+  testing:
+    use_sample_data: false
+    sample_size: 1000
+    mock_external_services: false
+    
+# 部署配置
+deployment:
+  environment: "development"  # development, staging, production
+  
+  # 资源限制
+  resources:
+    max_memory_usage: "4GB"
+    max_cpu_usage: 80  # 百分比
+    max_disk_usage: "10GB"
+    
+  # 监控配置
+  monitoring:
+    enable_metrics: true
+    metrics_interval: 60  # 秒
+    health_check_interval: 30  # 秒

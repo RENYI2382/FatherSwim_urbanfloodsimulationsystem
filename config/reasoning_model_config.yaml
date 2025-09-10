@@ -1,0 +1,172 @@
+caching:
+  cache_key_fields:
+  - weather_data
+  - agent_profile
+  - location
+  cache_ttl: 3600
+  enable_cache: true
+  max_cache_size: 1000
+debug:
+  enable_debug_mode: false
+  log_full_requests: false
+  log_full_responses: false
+  save_reasoning_traces: false
+  trace_output_dir: logs/reasoning_traces
+default_model: deepseek-r1
+error_handling:
+  exponential_backoff: true
+  fallback_model: qwen-reasoning
+  fallback_to_simple_model: true
+  max_retries: 3
+  retry_delay: 2
+models:
+  claude-reasoning:
+    cost_per_1k_tokens: 0.003
+    description: Anthropic推理模型
+    display_name: Claude-3.5 Sonnet
+    max_tokens: 4096
+    model_name: anthropic/claude-3-5-sonnet-20241022
+    supports_reasoning: false
+    supports_stream: true
+    temperature: 0.6
+    thinking_budget: 1024
+    top_p: 0.9
+  deepseek-r1:
+    cost_per_1k_tokens: 0.002
+    description: 支持思维链推理的高级模型
+    display_name: DeepSeek-R1 推理模型
+    max_tokens: 4096
+    model_name: deepseek-ai/DeepSeek-R1
+    supports_reasoning: true
+    supports_stream: true
+    temperature: 0.6
+    thinking_budget: 2048
+    top_p: 0.95
+  qwen-reasoning:
+    cost_per_1k_tokens: 0.001
+    description: 通义千问推理增强版
+    display_name: Qwen2.5-72B 推理版
+    max_tokens: 4096
+    model_name: Qwen/Qwen2.5-72B-Instruct
+    supports_reasoning: false
+    supports_stream: true
+    temperature: 0.7
+    thinking_budget: 1024
+    top_p: 0.9
+monitoring:
+  enable_metrics: true
+  log_reasoning_steps: true
+  log_thinking_content: false
+  track_response_time: true
+  track_token_usage: true
+prompt_templates:
+  evacuation_decision:
+    system: '你是一个专业的应急管理专家，需要基于给定信息进行飓风疏散决策推理。
+
+
+      请按照以下步骤进行推理：
+
+      1. 分析天气风险等级（风速、气压、降雨等）
+
+      2. 评估个人和家庭情况（年龄、健康、交通工具等）
+
+      3. 考虑社会影响因素（邻居行为、官方建议等）
+
+      4. 分析疏散成本和风险
+
+      5. 综合判断是否需要疏散
+
+
+      请逐步推理，并将最终答案以JSON格式输出。
+
+      '
+    user: '请基于以下信息进行飓风疏散决策推理：
+
+
+      天气数据：{weather_data}
+
+      个人档案：{agent_profile}
+
+      位置信息：{location_info}
+
+      社会影响：{social_influence}
+
+
+      请进行详细的推理分析，并给出最终决策。
+
+      '
+  risk_assessment:
+    system: '你是一个气象风险评估专家，需要基于天气和地理数据评估飓风风险。
+
+
+      请按照以下步骤进行推理：
+
+      1. 分析天气参数的危险程度
+
+      2. 评估地理位置的脆弱性
+
+      3. 考虑历史灾害数据
+
+      4. 计算综合风险评分
+
+      5. 给出风险等级和建议
+
+
+      请逐步推理，并将最终答案以JSON格式输出。
+
+      '
+    user: '请基于以下数据进行风险评估：
+
+
+      天气数据：{weather_data}
+
+      位置数据：{location_data}
+
+      历史数据：{historical_data}
+
+
+      请进行详细的风险评估推理。
+
+      '
+reasoning:
+  confidence_threshold: 0.7
+  enable_result_validation: true
+  enable_self_correction: true
+  max_correction_attempts: 2
+  max_reasoning_steps: 5
+  min_confidence: 0.3
+  min_reasoning_steps: 2
+  reasoning_timeout: 120
+  step_timeout: 30
+  validation_threshold: 0.8
+scenarios:
+  hurricane_evacuation:
+    enable_multi_step: true
+    max_tokens: 4096
+    model: deepseek-r1
+    temperature: 0.6
+    thinking_budget: 2048
+  mobility_planning:
+    enable_multi_step: false
+    max_tokens: 2048
+    model: qwen-reasoning
+    temperature: 0.7
+    thinking_budget: 1024
+  risk_assessment:
+    enable_multi_step: true
+    max_tokens: 3072
+    model: deepseek-r1
+    temperature: 0.5
+    thinking_budget: 1536
+  social_influence:
+    enable_multi_step: false
+    max_tokens: 2048
+    model: claude-reasoning
+    temperature: 0.6
+    thinking_budget: 1024
+silicon_flow:
+  api_key: sk-qdeqlpgwgwbhwwtjdtzumonxakyabpaotpnlckcwqopvpynz
+  base_url: https://api.siliconflow.cn/v1/
+  max_retries: 1
+  retry_delay: 2.0
+  timeout: 90

@@ -1,0 +1,96 @@
+# AgentSociety 标准配置文件
+# 基于官方文档的LLM配置规范
+
+# LLM配置 - 支持多LLM负载均衡
+llm:
+  # DeepSeek配置
+  - provider: deepseek
+    model: deepseek-chat
+    api_key: ${DEEPSEEK_API_KEY}  # 从环境变量读取
+    concurrency: 200
+    timeout: 30
+    
+  # Qwen配置（备用）
+  - provider: qwen
+    model: qwen-turbo
+    api_key: ${QWEN_API_KEY}  # 从环境变量读取
+    concurrency: 150
+    timeout: 30
+    
+  # OpenAI兼容配置（备用）
+  - provider: openai
+    model: gpt-4o-mini
+    api_key: ${OPENAI_API_KEY}  # 从环境变量读取
+    concurrency: 100
+    timeout: 30
+
+# 推理模块配置
+reasoning:
+  max_steps: 5
+  confidence_threshold: 0.7
+  fallback_enabled: true
+  structured_output: true
+  
+# 智能体配置
+agent:
+  reasoning_agent:
+    class: "AGStandardReasoningAgent"
+    config:
+      max_reasoning_depth: 3
+      enable_self_correction: true
+      memory_size: 1000
+      
+# 仿真配置
+simulation:
+  max_agents: 100
+  time_step: 1.0
+  max_iterations: 1000
+  
+# 环境配置
+environment:
+  weather:
+    update_interval: 300  # 5分钟更新一次
+    data_source: "mock"  # 或 "api"
+    
+  location:
+    coordinate_system: "wgs84"
+    precision: 6
+    
+# 日志配置
+logging:
+  level: INFO
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  handlers:
+    - type: console
+    - type: file
+      filename: "logs/agentsociety.log"
+      
+# 性能配置
+performance:
+  async_batch_size: 10
+  max_concurrent_requests: 50
+  request_timeout: 30
+  retry_attempts: 3
+  retry_delay: 1.0
+  
+# 安全配置
+security:
+  api_key_encryption: false
+  request_validation: true
+  rate_limiting: true
+  
+# 监控配置
+monitoring:
+  enable_metrics: true
+  metrics_interval: 60
+  health_check_interval: 30
+  
+# 实验配置
+experiment:
+  name: "hurricane_evacuation_simulation"
+  description: "飓风疏散智能体仿真实验"
+  version: "1.0.0"
+  tags:
+    - "hurricane"
+    - "evacuation"
+    - "reasoning"

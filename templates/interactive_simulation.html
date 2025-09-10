@@ -1,0 +1,4257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>发达水FatherSwim - 智能洪灾仿真系统</title>
+    
+    <!-- 引入样式库 -->
+    <link href="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.bootcdn.net/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/leaflet.css') }}" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #4ecdc4;
+            --warning-color: #ffa07a;
+            --danger-color: #ff6b6b;
+            --info-color: #45b7d1;
+            --light-bg: #f8f9fa;
+            --dark-bg: #343a40;
+        }
+        
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--light-bg) 0%, #e3f2fd 100%);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        .navbar {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+        
+        .main-layout {
+            display: flex;
+            height: calc(100vh - 76px);
+        }
+        
+        .control-sidebar {
+            width: 350px;
+            background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            z-index: 100;
+            transition: transform 0.3s ease, width 0.3s ease;
+            position: relative;
+        }
+        
+        .control-sidebar.collapsed {
+            transform: translateX(-320px);
+            width: 30px;
+        }
+        
+        .sidebar-toggle {
+            position: absolute;
+            top: 20px;
+            right: -40px;
+            width: 40px;
+            height: 40px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 0 8px 8px 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 2px 2px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            z-index: 101;
+        }
+        
+        .sidebar-toggle:hover {
+            background: var(--secondary-color);
+            transform: scale(1.1);
+        }
+        
+        .control-sidebar.collapsed .sidebar-toggle {
+            right: -40px;
+        }
+        
+        .sidebar-content {
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+        
+        .control-sidebar.collapsed .sidebar-content {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .simulation-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .simulation-map {
+            flex: 1;
+            position: relative;
+            background: #f0f0f0;
+        }
+        
+        .bottom-panel {
+            height: 200px;
+            background: white;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .timeline-panel {
+            height: 120px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-top: 2px solid var(--primary-color);
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            position: relative;
+            z-index: 10;
+            flex-shrink: 0;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .timeline-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        
+        .timeline-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 8px;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .timeline-btn:hover {
+            background: var(--secondary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .timeline-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .timeline-display {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+        
+        .timeline-time {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--primary-color);
+            font-family: 'Courier New', monospace;
+        }
+        
+        .timeline-step-info {
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        .timeline-container {
+            position: relative;
+            width: 100%;
+        }
+        
+        .timeline-track {
+            height: 12px;
+            background: #e9ecef;
+            border-radius: 6px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .timeline-markers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .timeline-progress {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 50%, #28a745 100%);
+            border-radius: 6px;
+            width: 0%;
+            transition: width 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .timeline-progress::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .timeline-thumb {
+            position: absolute;
+            top: -6px;
+            width: 24px;
+            height: 24px;
+            background: var(--primary-color);
+            border: 3px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            left: 0%;
+            transform: translateX(-50%);
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        
+        .timeline-thumb:hover {
+            transform: translateX(-50%) scale(1.2);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+        
+        .timeline-thumb-tooltip {
+            position: absolute;
+            bottom: 35px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .timeline-thumb:hover .timeline-thumb-tooltip {
+            opacity: 1;
+        }
+        
+        .timeline-speed-control {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            min-width: 120px;
+            flex-shrink: 0;
+        }
+        
+        .speed-label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        
+        .speed-slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            width: 100%;
+        }
+        
+        .speed-slider {
+            width: 80px;
+            height: 4px;
+            border-radius: 2px;
+            background: #e9ecef;
+            outline: none;
+            cursor: pointer;
+        }
+        
+        .speed-value {
+            font-size: 12px;
+            font-weight: bold;
+            color: var(--primary-color);
+            min-width: 35px;
+            text-align: center;
+        }
+        
+        .speed-presets {
+            display: flex;
+            gap: 4px;
+        }
+        
+        .speed-preset {
+            padding: 2px 6px;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .speed-preset:hover {
+            background: #f8f9fa;
+        }
+        
+        .speed-preset.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .control-panel {
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .control-panel h5 {
+            color: var(--primary-color);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .control-panel h5 i {
+            margin-right: 8px;
+        }
+        
+        .btn-control {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin: 3px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-control:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            color: white;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color) 0%, #26d0ce 100%);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning-color) 0%, #ff9a56 100%);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger-color) 0%, #ee5a52 100%);
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-running { background: var(--success-color); }
+        .status-paused { background: var(--warning-color); }
+        .status-stopped { background: var(--danger-color); }
+        
+        .parameter-group {
+            margin-bottom: 20px;
+        }
+        
+        .parameter-group label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--dark-bg);
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .form-range {
+            margin-bottom: 10px;
+        }
+        
+        .range-value {
+            font-size: 0.8rem;
+            color: var(--info-color);
+            font-weight: bold;
+        }
+        
+        .agent-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .agent-item {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .agent-item:hover {
+            background: #f8f9fa;
+            border-color: var(--primary-color);
+        }
+        
+        .agent-item.selected {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .agent-item-info {
+            padding: 10px;
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            margin: 5px 0;
+            border: 1px solid #e0e0e0;
+        }
+        
+        /* 性能优化：减少重绘和重排 */
+        .agent-item {
+            will-change: transform;
+            backface-visibility: hidden;
+            transform: translateZ(0); /* 启用硬件加速 */
+        }
+        
+        /* 地图性能优化 */
+        .leaflet-container {
+            will-change: transform;
+        }
+        
+        /* 图表容器优化 */
+        .chart-container canvas {
+            will-change: transform;
+        }
+        
+        /* 滚动性能优化 */
+        .agent-list {
+            contain: layout style paint;
+        }
+        
+        /* 加载指示器样式 */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+        
+        .loading-spinner {
+            text-align: center;
+            padding: 30px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-spinner p {
+            margin: 0;
+            color: #666;
+            font-size: 16px;
+        }
+        
+        .agent-type {
+            font-size: 0.8rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+        }
+        
+        .agent-family { background: #e3f2fd; color: #1976d2; }
+        .agent-community { background: #f3e5f5; color: #7b1fa2; }
+        .agent-universal { background: #e8f5e8; color: #388e3c; }
+        
+        .chart-mini {
+            height: 180px;
+            padding: 10px;
+        }
+        
+        .timeline-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .time-display {
+            font-family: 'Courier New', monospace;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            background: #f8f9fa;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+        
+        .scenario-editor {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .scenario-editor h6 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        .disaster-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .flood-visualization-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        /* 洪水层动画样式 */
+        .flood-layer {
+            transition: all 0.3s ease-in-out;
+        }
+        
+        .flood-level-low {
+            animation: gentlePulse 3s ease-in-out infinite;
+        }
+        
+        .flood-level-medium {
+            animation: moderatePulse 2.5s ease-in-out infinite;
+        }
+        
+        .flood-level-high {
+            animation: strongPulse 2s ease-in-out infinite;
+        }
+        
+        .flood-level-critical {
+            animation: criticalPulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes gentlePulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.5; }
+        }
+        
+        @keyframes moderatePulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.7; }
+        }
+        
+        @keyframes strongPulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 0.9; }
+        }
+        
+        @keyframes criticalPulse {
+            0%, 100% { opacity: 0.9; }
+            50% { opacity: 1.0; }
+        }
+        
+        /* 洪水路径样式 */
+        .flood-path {
+            transition: all 0.3s ease;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        
+        .flood-arrow-marker {
+            z-index: 1000;
+        }
+        
+        .flood-arrow {
+            transition: all 0.2s ease;
+        }
+        
+        /* 流动动画 */
+        @keyframes flowAnimation {
+            0% {
+                stroke-dashoffset: 0;
+            }
+            100% {
+                stroke-dashoffset: -20px;
+            }
+        }
+        
+        /* 地图图层控制样式 */
+        .leaflet-control-layers {
+            background: rgba(255, 255, 255, 0.95) !important;
+            border-radius: 8px !important;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+        }
+        
+        .leaflet-control-layers-expanded {
+            padding: 10px !important;
+        }
+        
+        .leaflet-control-scale {
+            background: rgba(255, 255, 255, 0.9) !important;
+            border-radius: 4px !important;
+            padding: 2px 5px !important;
+        }
+        
+        #map {
+            height: 100%;
+            width: 100%;
+            /* 硬件加速优化 */
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            /* 渲染优化 */
+            will-change: transform;
+            /* 图像渲染优化 */
+            image-rendering: optimizeSpeed;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: optimize-contrast;
+            /* 防止选择和拖拽 */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            /* 触摸优化 */
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* 地图瓦片优化 */
+        .leaflet-tile {
+            /* 启用硬件加速 */
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            /* 图像渲染优化 */
+            image-rendering: optimizeSpeed;
+            /* 减少重绘 */
+            will-change: transform;
+        }
+        
+        /* 地图容器优化 */
+        .leaflet-container {
+            /* 硬件加速 */
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            /* 优化滚动性能 */
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* 地图控件优化 */
+        .leaflet-control {
+            /* 减少重绘 */
+            will-change: auto;
+        }
+        
+        .floating-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            min-width: 200px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: var(--dark-bg);
+        }
+        
+        .info-value {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        
+        .agent-detail-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .agent-detail-item label {
+            font-weight: 600;
+            color: var(--dark-bg);
+            margin-bottom: 0;
+        }
+        
+        .agent-detail-item span {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        
+        .agent-detail-item input[type="range"] {
+            flex: 1;
+            margin: 0 10px;
+        }
+        
+        .btn-group-vertical .btn {
+            margin-bottom: 5px;
+            text-align: left;
+        }
+        
+        /* 智能体状态模态框样式 */
+        .agent-status-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .agent-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            background: #fff;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .agent-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        
+        .agent-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .agent-id {
+            font-weight: bold;
+            color: #007bff;
+            font-size: 1.1em;
+        }
+        
+        /* 智能体标记悬停效果 */
+        .agent-marker-container:hover .agent-marker-tooltip {
+            opacity: 1 !important;
+        }
+        
+        .agent-marker-container:hover .agent-marker-main {
+            transform: scale(1.1);
+            transition: transform 0.2s ease;
+        }
+        
+        .agent-marker-label {
+            user-select: none;
+            pointer-events: none;
+        }
+        
+        .agent-type {
+            background: #e9ecef;
+            color: #495057;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+        }
+        
+        .agent-status {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+        
+        .status-normal { background: #d4edda; color: #155724; }
+        .status-evacuating { background: #fff3cd; color: #856404; }
+        .status-evacuated { background: #d1ecf1; color: #0c5460; }
+        .status-helping { background: #f8d7da; color: #721c24; }
+        
+        .agent-details {
+            font-size: 0.9em;
+            color: #6c757d;
+        }
+        
+        .agent-details .detail-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+        
+        .agent-details .detail-label {
+            font-weight: 500;
+        }
+        
+        .agent-position {
+            background: #f8f9fa;
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 8px;
+            font-family: monospace;
+            font-size: 0.8em;
+        }
+        
+        /* 智能体标记样式 */
+        .custom-agent-marker {
+            background: transparent !important;
+            border: none !important;
+        }
+        
+        .agent-marker-container {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .agent-marker-container:hover {
+            transform: scale(1.2);
+            z-index: 1000;
+        }
+        
+        .agent-marker-container.highlighted {
+            animation: agentHighlight 1s ease-in-out;
+            z-index: 1001;
+        }
+        
+        @keyframes agentPulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 0.3;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 0.6;
+            }
+        }
+        
+        @keyframes agentHighlight {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
+            }
+            25% {
+                transform: scale(1.3);
+                box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.3);
+            }
+            50% {
+                transform: scale(1.1);
+                box-shadow: 0 0 0 20px rgba(255, 255, 255, 0.1);
+            }
+            75% {
+                transform: scale(1.2);
+                box-shadow: 0 0 0 15px rgba(255, 255, 255, 0.2);
+            }
+        }
+        
+        /* 增强的弹出窗口样式 */
+        .leaflet-popup.agent-popup-enhanced .leaflet-popup-content-wrapper {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+            border: 1px solid #e0e0e0;
+        }
+        
+        .leaflet-popup.agent-popup-enhanced .leaflet-popup-content {
+            margin: 0;
+            padding: 0;
+        }
+        
+        .agent-popup-content {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        
+        .popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+        
+        .popup-body {
+            padding: 16px;
+        }
+        
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        
+        .status-safe { background: #4caf50; color: white; }
+        .status-evacuating { background: #ff9800; color: white; }
+        .status-at_risk { background: #f44336; color: white; }
+        .status-helping { background: #2196f3; color: white; }
+        .status-inactive { background: #9e9e9e; color: white; }
+        
+        .popup-actions {
+            padding: 12px 16px;
+            background: #f8f9fa;
+            border-radius: 0 0 12px 12px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .popup-actions .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .popup-actions .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .popup-actions .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+        
+        .popup-actions .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .popup-actions .btn-info:hover {
+            background: #117a8b;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(15px); padding: 15px 0; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border-bottom: 1px solid rgba(255,255,255,0.2);">
+        <div style="max-width: 1400px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 20px;">
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <a href="/" style="color: white; text-decoration: none; font-weight: 600; font-size: 1.1em; padding: 8px 16px; border-radius: 25px; background: rgba(255,255,255,0.1); transition: all 0.3s ease;" onmouseover="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.transform='translateY(0)'">🏠 主页</a>
+                <span style="color: rgba(255,255,255,0.8); font-size: 1.2em;">•</span>
+                <span style="color: #fff; font-weight: 700; background: linear-gradient(45deg, #27ae60, #2ecc71); padding: 8px 16px; border-radius: 25px; box-shadow: 0 4px 15px rgba(39, 174, 96, 0.3); display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-water"></i> 发达水FatherSwim
+                </span>
+            </div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <a href="/dashboard" style="color: white; text-decoration: none; padding: 8px 16px; border-radius: 25px; transition: all 0.3s ease; background: rgba(255,255,255,0.1); font-weight: 500;" onmouseover="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.transform='translateY(0)'">📊 基础版</a>
+                <a href="/enhanced_dashboard" style="color: white; text-decoration: none; padding: 8px 16px; border-radius: 25px; transition: all 0.3s ease; background: rgba(255,255,255,0.1); font-weight: 500;" onmouseover="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.transform='translateY(0)'">📈 增强版</a>
+                <a href="/project_showcase" style="color: white; text-decoration: none; padding: 8px 16px; border-radius: 25px; transition: all 0.3s ease; background: rgba(255,255,255,0.1); font-weight: 500;" onmouseover="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.transform='translateY(0)'">🎯 展示</a>
+                <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.1); padding: 8px 16px; border-radius: 25px;">
+                    <span class="status-indicator status-stopped" id="simStatus"></span>
+                    <span id="simStatusText" style="color: white; font-size: 0.9em;">仿真已停止</span>
+                </div>
+                <button class="btn" onclick="showHelp()" style="background: rgba(255,255,255,0.1); color: white; border: none; padding: 8px 16px; border-radius: 25px; transition: all 0.3s ease;" onmouseover="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.transform='translateY(0)'">
+                    <i class="fas fa-question-circle"></i> 帮助
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 加载指示器 -->
+    <div id="loadingIndicator" class="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>正在初始化系统...</p>
+        </div>
+    </div>
+
+    <!-- 主布局 -->
+    <div class="main-layout">
+        <!-- 控制侧边栏 -->
+        <div class="control-sidebar" id="controlSidebar">
+            <!-- 侧边栏切换按钮 -->
+            <button class="sidebar-toggle" id="sidebarToggle" title="收起/展开侧边栏">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            
+            <div class="sidebar-content">
+                <!-- 仿真控制 -->
+            <div class="control-panel">
+                <h5><i class="fas fa-play-circle"></i>仿真控制</h5>
+                <div class="d-flex flex-wrap">
+                    <button class="btn btn-control btn-success" onclick="startSimulation()">
+                        <i class="fas fa-play"></i> 开始
+                    </button>
+                    <button class="btn btn-control btn-warning" onclick="pauseSimulation()">
+                        <i class="fas fa-pause"></i> 暂停
+                    </button>
+                    <button class="btn btn-control btn-danger" onclick="stopSimulation()">
+                        <i class="fas fa-stop"></i> 停止
+                    </button>
+                    <button class="btn btn-control" onclick="resetSimulation()">
+                        <i class="fas fa-redo"></i> 重置
+                    </button>
+                </div>
+                
+                <div class="timeline-controls">
+                    <label>速度:</label>
+                    <input type="range" class="form-range" id="speedControl" min="0.1" max="5" step="0.1" value="1">
+                    <span class="range-value" id="speedValue">1.0x</span>
+                </div>
+                
+                <div class="time-display" id="timeDisplay">时间: 00:00:00</div>
+            </div>
+
+            <!-- 参数控制 -->
+            <div class="control-panel">
+                <h5><i class="fas fa-sliders-h"></i>参数控制</h5>
+                
+                <div class="parameter-group">
+                    <label>智能体数量</label>
+                    <input type="range" class="form-range" id="agentCount" min="50" max="500" value="200">
+                    <span class="range-value" id="agentCountValue">200</span>
+                </div>
+                
+                <div class="parameter-group">
+                    <label>洪水强度</label>
+                    <input type="range" class="form-range" id="floodIntensity" min="0" max="1" step="0.1" value="0.3">
+                    <span class="range-value" id="floodIntensityValue">0.3</span>
+                </div>
+                
+                <div class="parameter-group">
+                    <label>社交网络密度</label>
+                    <input type="range" class="form-range" id="networkDensity" min="0.1" max="1" step="0.1" value="0.5">
+                    <span class="range-value" id="networkDensityValue">0.5</span>
+                </div>
+            </div>
+
+            <!-- 智能体选择 -->
+            <div class="control-panel">
+                <h5><i class="fas fa-users"></i>智能体交互</h5>
+                <div class="agent-list" id="agentList">
+                    <!-- 智能体列表将动态生成 -->
+                </div>
+            </div>
+
+            <!-- 智能体详情面板 -->
+            <div class="control-panel" id="agentDetailsPanel" style="display: none;">
+                <h5><i class="fas fa-user-cog"></i>智能体详情 <button class="btn btn-sm btn-outline-secondary float-end" onclick="closeAgentDetails()">×</button></h5>
+                <div id="agentDetails">
+                    <div class="agent-detail-item">
+                        <label>ID:</label>
+                        <span id="detailAgentId">-</span>
+                    </div>
+                    <div class="agent-detail-item">
+                        <label>类型:</label>
+                        <span id="detailAgentType">-</span>
+                    </div>
+                    <div class="agent-detail-item">
+                        <label>位置:</label>
+                        <span id="detailAgentPosition">-</span>
+                    </div>
+                    <div class="agent-detail-item">
+                        <label>资源:</label>
+                        <input type="range" id="detailAgentResources" min="0" max="100" class="form-range" onchange="updateAgentResources()">
+                        <span id="detailResourcesValue">0</span>
+                    </div>
+                    <div class="agent-detail-item">
+                        <label>风险等级:</label>
+                        <span id="detailAgentRisk">-</span>
+                    </div>
+                    <div class="agent-detail-item">
+                        <label>状态:</label>
+                        <span id="detailAgentStatus">-</span>
+                    </div>
+                    <div class="mt-3">
+                        <h6>行为干预</h6>
+                        <div class="btn-group-vertical w-100">
+                            <button class="btn btn-sm btn-outline-primary" onclick="interventeAgent('move_to_safety')">
+                                <i class="fas fa-shield-alt"></i> 引导至安全区
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="interventeAgent('increase_caution')">
+                                <i class="fas fa-exclamation-triangle"></i> 提高警觉性
+                            </button>
+                            <button class="btn btn-sm btn-outline-success" onclick="interventeAgent('help_others')">
+                                <i class="fas fa-hands-helping"></i> 协助他人
+                            </button>
+                            <button class="btn btn-sm btn-outline-info" onclick="interventeAgent('share_info')">
+                                <i class="fas fa-share"></i> 分享信息
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="interventeAgent('reset_behavior')">
+                                <i class="fas fa-undo"></i> 重置行为
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 场景编辑器 -->
+            <div class="control-panel">
+                <h5><i class="fas fa-edit"></i>场景编辑</h5>
+                <div class="scenario-editor">
+                    <h6>灾害设置</h6>
+                    <div class="disaster-controls">
+                        <button class="btn btn-control btn-sm" onclick="addFloodZone()">
+                            <i class="fas fa-water"></i> 添加洪水
+                        </button>
+                        <button class="btn btn-control btn-sm" onclick="addSafeZone()">
+                            <i class="fas fa-shield-alt"></i> 安全区域
+                        </button>
+                        <button class="btn btn-control btn-sm" onclick="addBarrier()">
+                            <i class="fas fa-road"></i> 道路阻塞
+                        </button>
+                        <button class="btn btn-control btn-sm" onclick="exitEditMode()">
+                            <i class="fas fa-times"></i> 退出编辑
+                        </button>
+                        <button class="btn btn-control btn-sm" onclick="clearScenario()">
+                            <i class="fas fa-trash"></i> 清除
+                        </button>
+                    </div>
+                    
+                    <h6 class="mt-3">洪水可视化</h6>
+                    <div class="flood-visualization-controls">
+                        <button class="btn btn-primary btn-sm" id="toggleFloodBtn" onclick="toggleFloodVisualization()">
+                            <i class="fas fa-eye"></i> 显示洪水
+                        </button>
+                        <button class="btn btn-control btn-sm" onclick="clearFloodLayers()">
+                            <i class="fas fa-broom"></i> 清除洪水层
+                        </button>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">提示：右键点击地图也可退出编辑模式</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据导出 -->
+            <div class="control-panel">
+                <h5><i class="fas fa-download"></i>数据导出</h5>
+                <div class="export-controls">
+                    <button class="btn btn-control btn-sm" onclick="exportSimulationData()">
+                        <i class="fas fa-database"></i> 导出数据
+                    </button>
+                    <button class="btn btn-control btn-sm" onclick="exportCharts()">
+                        <i class="fas fa-chart-bar"></i> 导出图表
+                    </button>
+                    <button class="btn btn-control btn-sm" onclick="generateReport()">
+                        <i class="fas fa-file-alt"></i> 生成报告
+                    </button>
+                    <button class="btn btn-control btn-sm" onclick="exportScenario()">
+                        <i class="fas fa-map"></i> 导出场景
+                    </button>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">支持JSON、CSV、PNG格式导出</small>
+                </div>
+            </div>
+            </div> <!-- 结束 sidebar-content -->
+        </div>
+
+        <!-- 仿真区域 -->
+        <div class="simulation-area">
+            <!-- 地图区域 -->
+            <div class="simulation-map">
+                <div id="map"></div>
+                
+                <!-- 浮动信息面板 -->
+                <div class="floating-info">
+                    <div class="info-item">
+                        <span class="info-label">仿真步数:</span>
+                        <span class="info-value" id="stepCount">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">活跃智能体:</span>
+                        <span class="info-value" id="activeAgents">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">疏散人数:</span>
+                        <span class="info-value" id="evacuatedCount">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">帮助行为:</span>
+                        <span class="info-value" id="helpActions">0</span>
+                    </div>
+                    
+                    <!-- 智能体状态按钮 -->
+                    <div class="info-item" style="margin-top: 15px;">
+                        <button class="btn btn-sm btn-primary w-100" id="showAllAgentsBtn" onclick="showAllAgentsStatus()">
+                            <i class="fas fa-users"></i> 查看所有智能体状态
+                        </button>
+                    </div>
+                    
+                    <!-- 地图性能监控 -->
+                    <div class="info-item" style="margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                        <span class="info-label">地图性能:</span>
+                        <button class="btn btn-sm btn-outline-info" id="mapPerformanceBtn" onclick="toggleMapPerformance()">
+                            <i class="fas fa-tachometer-alt"></i> 监控
+                        </button>
+                    </div>
+                    
+                    <!-- 地图性能详情面板 -->
+                    <div id="mapPerformancePanel" style="display: none; margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px; font-size: 0.8rem;">
+                        <div class="info-item">
+                            <span class="info-label">瓦片加载:</span>
+                            <span class="info-value" id="tileLoadStatus">就绪</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">内存状态:</span>
+                            <span class="info-value" id="memoryStatus">正常</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">渲染模式:</span>
+                            <span class="info-value" id="renderMode">Canvas</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">缓存瓦片:</span>
+                            <span class="info-value" id="cachedTiles">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部面板 -->
+            <div class="bottom-panel">
+                <div class="chart-mini" style="flex: 1;">
+                    <canvas id="populationChart"></canvas>
+                </div>
+                <div class="chart-mini" style="flex: 1;">
+                    <canvas id="behaviorChart"></canvas>
+                </div>
+                <div class="chart-mini" style="flex: 1;">
+                    <canvas id="riskChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- 增强时间轴面板 -->
+            <div class="timeline-panel">
+                <!-- 左侧控制按钮 -->
+                <div class="timeline-controls">
+                    <button class="timeline-btn" id="playPauseBtn" title="播放/暂停">
+                        <i class="fas fa-play"></i>
+                    </button>
+                    <button class="timeline-btn" id="resetBtn" title="重置">
+                        <i class="fas fa-undo"></i>
+                    </button>
+                    <button class="timeline-btn" id="stepForwardBtn" title="单步前进">
+                        <i class="fas fa-step-forward"></i>
+                    </button>
+                    <button class="timeline-btn" id="stepBackwardBtn" title="单步后退">
+                        <i class="fas fa-step-backward"></i>
+                    </button>
+                </div>
+                
+                <!-- 中央时间轴区域 -->
+                <div class="timeline-main">
+                    <!-- 时间和步数显示 -->
+                    <div class="timeline-display">
+                        <div class="timeline-time" id="timelineTime">00:00:00</div>
+                        <div class="timeline-step-info">
+                            <span id="timelineStep">0</span> / <span id="timelineMaxStep">1000</span> 步
+                        </div>
+                    </div>
+                    
+                    <!-- 进度条容器 -->
+                    <div class="timeline-container">
+                        <div class="timeline-track">
+                            <!-- 背景刻度线 -->
+                            <div class="timeline-markers" id="timelineMarkers"></div>
+                            <!-- 进度条 -->
+                            <div class="timeline-progress" id="timelineProgress"></div>
+                            <!-- 拖拽滑块 -->
+                            <div class="timeline-thumb" id="timelineThumb">
+                                <div class="timeline-thumb-tooltip" id="timelineTooltip">步数: 0</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 右侧速度控制 -->
+                <div class="timeline-speed-control">
+                    <div class="speed-label">
+                        <i class="fas fa-tachometer-alt"></i>
+                        <span>速度</span>
+                    </div>
+                    <div class="speed-slider-container">
+                        <input type="range" class="speed-slider" id="speedControl" 
+                               min="0.1" max="5" step="0.1" value="1">
+                        <div class="speed-value" id="speedValue">1.0x</div>
+                    </div>
+                    <div class="speed-presets">
+                        <button class="speed-preset" data-speed="0.5">0.5x</button>
+                        <button class="speed-preset active" data-speed="1">1x</button>
+                        <button class="speed-preset" data-speed="2">2x</button>
+                        <button class="speed-preset" data-speed="5">5x</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 智能体状态模态框 -->
+    <div class="modal fade" id="agentStatusModal" tabindex="-1" aria-labelledby="agentStatusModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="agentStatusModalLabel">
+                        <i class="fas fa-users"></i> 所有智能体状态
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" id="agentSearchInput" placeholder="搜索智能体 (ID, 类型, 状态...)">
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="agentTypeFilter">
+                                <option value="">所有类型</option>
+                                <option value="普通居民">普通居民</option>
+                                <option value="社区领袖">社区领袖</option>
+                                <option value="救援人员">救援人员</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select class="form-select" id="agentStatusFilter">
+                                <option value="">所有状态</option>
+                                <option value="正常">正常</option>
+                                <option value="疏散中">疏散中</option>
+                                <option value="已疏散">已疏散</option>
+                                <option value="帮助他人">帮助他人</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="agent-status-grid" id="agentStatusGrid">
+                        <!-- 智能体状态卡片将动态生成 -->
+                    </div>
+                    
+                    <div class="text-center mt-3" id="agentStatusLoading" style="display: none;">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button type="button" class="btn btn-primary" onclick="refreshAgentStatus()">刷新状态</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入JavaScript库 -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/leaflet.js') }}"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <script>
+        // 全局变量
+        let map;
+        let simulationState = 'stopped';
+        let currentStep = 0;
+        let simulationSpeed = 1.0;
+        let selectedAgent = null;
+        let agents = [];
+        let charts = {};
+        let ws = null;
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for Leaflet to load before initializing map
+            if (typeof L !== 'undefined') {
+                initializeMap();
+            } else {
+                setTimeout(() => {
+                    if (typeof L !== 'undefined') {
+                        initializeMap();
+                    }
+                }, 1000);
+            }
+            // Wait for Chart.js to load before initializing charts
+            if (typeof Chart !== 'undefined') {
+                initializeCharts();
+            } else {
+                setTimeout(() => {
+                    if (typeof Chart !== 'undefined') {
+                        initializeCharts();
+                    }
+                }, 1000);
+            }
+            // Wait for Socket.IO to load before initializing WebSocket
+            if (typeof io !== 'undefined') {
+                initializeWebSocket();
+            } else {
+                setTimeout(() => {
+                    if (typeof io !== 'undefined') {
+                        initializeWebSocket();
+                    }
+                }, 1000);
+            }
+            initializeControls();
+            
+            // 延迟生成智能体，确保地图已初始化
+            setTimeout(() => {
+                if (typeof L !== 'undefined' && map) {
+                    generateSampleAgents();
+                }
+            }, 2000);
+        });
+        
+        // 地图性能优化配置
+        const mapConfig = {
+            // 瓦片缓存配置
+            tileCache: {
+                maxSize: 100, // 最大缓存瓦片数
+                maxAge: 300000 // 缓存时间（5分钟）
+            },
+            // 渲染优化
+            rendering: {
+                preferCanvas: true, // 使用Canvas渲染提升性能
+                updateWhenIdle: true, // 仅在空闲时更新
+                updateWhenZooming: false, // 缩放时不更新
+                keepBuffer: 2 // 保持缓冲区大小
+            },
+            // 内存管理
+            memory: {
+                maxZoom: 18, // 限制最大缩放级别
+                minZoom: 8,  // 限制最小缩放级别
+                tileSize: 256, // 标准瓦片大小
+                zoomOffset: 0
+            }
+        };
+
+        // 初始化地图
+        function initializeMap() {
+            // 创建地图实例，应用性能优化配置
+            map = L.map('map', {
+                preferCanvas: mapConfig.rendering.preferCanvas,
+                updateWhenIdle: mapConfig.rendering.updateWhenIdle,
+                updateWhenZooming: mapConfig.rendering.updateWhenZooming,
+                keepBuffer: mapConfig.rendering.keepBuffer,
+                maxZoom: mapConfig.memory.maxZoom,
+                minZoom: mapConfig.memory.minZoom
+            }).setView([39.9042, 116.4074], 12);
+            
+            // 定义优化的地图图层
+            const baseMaps = {
+                "高性能地图": L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: mapConfig.memory.maxZoom,
+                    minZoom: mapConfig.memory.minZoom,
+                    tileSize: mapConfig.memory.tileSize,
+                    updateWhenIdle: true,
+                    updateWhenZooming: false,
+                    keepBuffer: 2,
+                    // 启用瓦片缓存
+                    crossOrigin: true
+                }),
+                "卫星地图": L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                    attribution: '© Esri, DigitalGlobe, GeoEye, Earthstar Geographics',
+                    maxZoom: 16, // 限制卫星图最大缩放以节省内存
+                    minZoom: mapConfig.memory.minZoom,
+                    updateWhenIdle: true
+                }),
+                "轻量地形": L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenTopoMap contributors',
+                    maxZoom: 15, // 地形图限制更低缩放级别
+                    minZoom: mapConfig.memory.minZoom,
+                    updateWhenIdle: true
+                }),
+                "简化水文": L.tileLayer('https://stamen-tiles-{s}.a.ssl.fastly.net/watercolor/{z}/{x}/{y}.png', {
+                    attribution: '© Stamen Design, © OpenStreetMap contributors',
+                    maxZoom: 14, // 水文图使用较低分辨率
+                    minZoom: mapConfig.memory.minZoom,
+                    updateWhenIdle: true
+                })
+            };
+            
+            // 默认添加高性能地图
+            baseMaps["高性能地图"].addTo(map);
+            
+            // 添加图层控制器
+            const layerControl = L.control.layers(baseMaps, {}, {
+                position: 'topright',
+                collapsed: false
+            }).addTo(map);
+            
+            // 添加比例尺
+            L.control.scale({
+                position: 'bottomleft',
+                metric: true,
+                imperial: false
+            }).addTo(map);
+            
+            // 地图性能监控和优化
+            let tileLoadCount = 0;
+            let lastTileLoadTime = Date.now();
+            
+            // 监听瓦片加载事件
+            map.on('tileloadstart', function() {
+                tileLoadCount++;
+            });
+            
+            map.on('tileload', function() {
+                tileLoadCount--;
+                lastTileLoadTime = Date.now();
+            });
+            
+            // 内存清理函数
+            function cleanupMapMemory() {
+                // 清理未使用的瓦片
+                map.eachLayer(function(layer) {
+                    if (layer._tiles) {
+                        const now = Date.now();
+                        Object.keys(layer._tiles).forEach(key => {
+                            const tile = layer._tiles[key];
+                            if (tile.loaded && (now - tile.loadTime) > mapConfig.tileCache.maxAge) {
+                                delete layer._tiles[key];
+                            }
+                        });
+                    }
+                });
+            }
+            
+            // 定期清理内存（每30秒）
+            setInterval(cleanupMapMemory, 30000);
+            
+            // 地图移动结束后的优化
+            map.on('moveend', function() {
+                // 延迟清理，避免频繁操作
+                setTimeout(cleanupMapMemory, 2000);
+            });
+            
+            // 缩放结束后的优化
+             map.on('zoomend', function() {
+                 // 清理不需要的缩放级别瓦片
+                 setTimeout(cleanupMapMemory, 1000);
+             });
+             
+             // 性能监控数据更新
+             function updateMapPerformance() {
+                 if (document.getElementById('mapPerformancePanel').style.display !== 'none') {
+                     // 更新瓦片加载状态
+                     const tileStatus = tileLoadCount > 0 ? `加载中(${tileLoadCount})` : '就绪';
+                     document.getElementById('tileLoadStatus').textContent = tileStatus;
+                     
+                     // 更新内存状态
+                     let totalTiles = 0;
+                     map.eachLayer(function(layer) {
+                         if (layer._tiles) {
+                             totalTiles += Object.keys(layer._tiles).length;
+                         }
+                     });
+                     
+                     const memoryStatus = totalTiles > 200 ? '高负载' : totalTiles > 100 ? '中等' : '正常';
+                     document.getElementById('memoryStatus').textContent = memoryStatus;
+                     document.getElementById('cachedTiles').textContent = totalTiles;
+                     
+                     // 更新内存状态颜色
+                     const memoryElement = document.getElementById('memoryStatus');
+                     memoryElement.style.color = totalTiles > 200 ? '#dc3545' : totalTiles > 100 ? '#ffc107' : '#28a745';
+                 }
+             }
+             
+             // 定期更新性能数据（每2秒）
+             setInterval(updateMapPerformance, 2000);
+             
+             // 初始化性能数据
+             updateMapPerformance();
+            
+            // 添加点击事件
+            map.on('click', function(e) {
+                // 优先处理场景编辑
+                if (editMode) {
+                    handleMapClick(e);
+                } else if (selectedAgent) {
+                    moveAgentTo(selectedAgent, e.latlng);
+                }
+            });
+            
+            // 添加右键点击退出编辑模式
+            map.on('contextmenu', function(e) {
+                if (editMode) {
+                    exitEditMode();
+                    e.originalEvent.preventDefault();
+                }
+            });
+        }
+        
+        // 初始化图表
+        function initializeCharts() {
+            // 人口分布图表
+            const popCtx = document.getElementById('populationChart').getContext('2d');
+            charts.population = new Chart(popCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['家庭型', '社区型', '普世型'],
+                    datasets: [{
+                        data: [0, 0, 0],
+                        backgroundColor: ['#e3f2fd', '#f3e5f5', '#e8f5e8']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '智能体类型分布'
+                        }
+                    }
+                }
+            });
+            
+            // 行为统计图表
+            const behaviorCtx = document.getElementById('behaviorChart').getContext('2d');
+            charts.behavior = new Chart(behaviorCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '帮助行为',
+                        data: [],
+                        borderColor: '#4ecdc4',
+                        tension: 0.1
+                    }, {
+                        label: '疏散行为',
+                        data: [],
+                        borderColor: '#ff6b6b',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '行为统计'
+                        }
+                    }
+                }
+            });
+            
+            // 风险分布图表
+            const riskCtx = document.getElementById('riskChart').getContext('2d');
+            charts.risk = new Chart(riskCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['低风险', '中风险', '高风险'],
+                    datasets: [{
+                        label: '区域数量',
+                        data: [0, 0, 0],
+                        backgroundColor: ['#4ecdc4', '#ffa07a', '#ff6b6b']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '风险区域分布'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 全局工具函数
+        function throttle(func, limit) {
+            let inThrottle;
+            return function() {
+                const args = arguments;
+                const context = this;
+                if (!inThrottle) {
+                    func.apply(context, args);
+                    inThrottle = true;
+                    setTimeout(() => inThrottle = false, limit);
+                }
+            }
+        }
+        
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // 批量更新队列（全局作用域）
+        let updateQueue = [];
+        let isProcessingQueue = false;
+        
+        function processUpdateQueue() {
+            if (isProcessingQueue || updateQueue.length === 0) return;
+            
+            isProcessingQueue = true;
+            requestAnimationFrame(() => {
+                const updates = [...updateQueue];
+                updateQueue = [];
+                
+                // 批量处理更新
+                const agentUpdates = updates.filter(u => u.type === 'agent');
+                const mapUpdates = updates.filter(u => u.type === 'map');
+                
+                if (agentUpdates.length > 0) {
+                    updateAgentList();
+                }
+                if (mapUpdates.length > 0) {
+                    displayAgentsOnMap();
+                }
+                
+                isProcessingQueue = false;
+            });
+        }
+        
+        function queueUpdate(type) {
+            updateQueue.push({type, timestamp: Date.now()});
+            processUpdateQueue();
+        }
+
+        // 初始化WebSocket连接
+        function initializeWebSocket() {
+            // 使用Socket.IO客户端
+            window.socket = io();
+            ws = window.socket;
+            
+            ws.on('connect', function() {
+                console.log('WebSocket连接已建立');
+                // 连接成功后隐藏加载指示器
+                hideLoadingIndicator();
+                
+                // 加入simulation房间以接收仿真数据
+                ws.emit('join', {room: 'simulation'});
+                
+                // 自动启动仿真以显示地图和智能体
+                setTimeout(() => {
+                    console.log('自动启动仿真');
+                    startSimulation();
+                }, 1000);
+            });
+            
+            ws.on('status', function(data) {
+                console.log('收到状态更新:', data);
+                simulationState = data.status;
+                updateSimulationStatus();
+            });
+            
+            ws.on('scenario_update', debounce(function(data) {
+                console.log('收到场景更新:', data);
+                loadScenarioFromData(data);
+            }, 200));
+            
+            // 监听智能体更新（优化版）
+            ws.on('agent_updated', throttle(function(data) {
+                // 更新本地智能体数据
+                const agent = agents.find(a => a.id === data.agentId);
+                if (agent) {
+                    if (data.property === 'resources') {
+                        agent.resources = data.value;
+                    } else if (data.property === 'risk') {
+                        agent.risk = data.value;
+                    } else if (data.property === 'position') {
+                        agent.position = data.value;
+                    }
+                    
+                    // 使用队列批量更新界面
+                    queueUpdate('agent');
+                    queueUpdate('map');
+                    
+                    // 如果当前选中的是这个智能体，更新详情面板
+                    if (selectedAgent && selectedAgent.id === data.agentId) {
+                        requestAnimationFrame(() => showAgentDetails(agent));
+                    }
+                }
+            }, 50));
+            
+            // 监听智能体干预（优化版）
+            ws.on('agent_intervention', function(data) {
+                // 更新本地智能体数据
+                const agent = agents.find(a => a.id === data.agentId);
+                if (agent) {
+                    // 更新智能体状态
+                    Object.assign(agent, data.agent);
+                    
+                    // 使用队列批量更新界面
+                    queueUpdate('agent');
+                    queueUpdate('map');
+                    
+                    // 如果当前选中的是这个智能体，更新详情面板
+                    if (selectedAgent && selectedAgent.id === data.agentId) {
+                        requestAnimationFrame(() => showAgentDetails(agent));
+                    }
+                    
+                    // 显示干预成功提示
+                    const actionNames = {
+                        'move_to_safety': '引导至安全区',
+                        'increase_caution': '提高警觉性',
+                        'help_others': '协助他人',
+                        'share_info': '分享信息',
+                        'reset_behavior': '重置行为'
+                    };
+                    
+                    showNotification(`智能体 ${data.agentId} 干预成功：${actionNames[data.action]}`, 'success');
+                }
+            });
+            
+            ws.on('simulation_update', throttle(function(data) {
+                requestAnimationFrame(() => handleSimulationUpdate(data));
+            }, 100));
+            
+            ws.on('status_update', throttle(function(data) {
+                simulationState = data.status;
+                requestAnimationFrame(() => updateSimulationStatus());
+            }, 200));
+            
+            // 处理仿真暂停事件
+            ws.on('simulation_paused', function(data) {
+                console.log('仿真已暂停:', data);
+                if (data.reason === 'max_steps_reached') {
+                    showNotification(data.message, 'warning', 5000);
+                    // 更新UI状态
+                    isSimulationPaused = true;
+                    updateSimulationControls();
+                }
+            });
+            
+            ws.on('agent_moved', throttle(function(data) {
+                console.log('智能体移动:', data);
+                // 优化：只在必要时更新地图
+                queueUpdate('map');
+            }, 16)); // 约60fps
+            
+            ws.on('disconnect', function() {
+                console.log('WebSocket连接已关闭');
+                showNotification('与服务器连接断开', 'error');
+            });
+        }
+        
+        // 初始化控件
+        function initializeControls() {
+            // 速度控制已移至 initializeTimeline 函数中
+            
+            // 参数控制
+            ['agentCount', 'floodIntensity', 'networkDensity'].forEach(id => {
+                document.getElementById(id).addEventListener('input', function(e) {
+                    document.getElementById(id + 'Value').textContent = e.target.value;
+                    updateParameter(id, e.target.value);
+                });
+            });
+        }
+        
+        // 生成示例智能体
+        function generateSampleAgents() {
+            const agentTypes = ['family', 'community', 'universal'];
+            const typeNames = ['家庭型', '社区型', '普世型'];
+            const typeClasses = ['agent-family', 'agent-community', 'agent-universal'];
+            
+            agents = [];
+            for (let i = 0; i < 50; i++) {
+                const typeIndex = Math.floor(Math.random() * 3);
+                agents.push({
+                    id: `agent_${i}`,
+                    type: agentTypes[typeIndex],
+                    typeName: typeNames[typeIndex],
+                    typeClass: typeClasses[typeIndex],
+                    position: {
+                        lat: 39.9042 + (Math.random() - 0.5) * 0.1,
+                        lng: 116.4074 + (Math.random() - 0.5) * 0.1
+                    },
+                    status: 'active',
+                    resources: Math.floor(Math.random() * 100),
+                    risk: Math.random()
+                });
+            }
+            
+            updateAgentList();
+            updateCharts();
+            displayAgentsOnMap();
+        }
+        
+        // 优化的智能体地图显示
+        let agentMarkersMap = new Map(); // 使用Map来跟踪标记
+        let lastAgentCount = 0;
+        
+        function displayAgentsOnMap() {
+            // 检查地图和Leaflet库是否可用
+            if (typeof L === 'undefined' || !map) {
+                console.log('地图或Leaflet库未准备好');
+                return;
+            }
+            
+            // 性能优化：如果智能体数量没有变化，只更新位置
+            if (agents.length === lastAgentCount && agentMarkersMap.size > 0) {
+                updateAgentPositions();
+                return;
+            }
+            
+            // 清除现有标记
+            agentMarkersMap.forEach(marker => map.removeLayer(marker));
+            agentMarkersMap.clear();
+            
+            // 批量创建标记
+            const markersToAdd = [];
+            agents.forEach(agent => {
+                const marker = createEnhancedAgentMarker(agent);
+                agentMarkersMap.set(agent.id, marker);
+                markersToAdd.push(marker);
+            });
+            
+            // 批量添加到地图
+            const group = L.layerGroup(markersToAdd).addTo(map);
+            lastAgentCount = agents.length;
+        }
+        
+        // 创建增强的智能体标记
+        function createEnhancedAgentMarker(agent) {
+            // 根据智能体类型和状态确定颜色和大小
+            const typeColors = {
+                'family': '#ff6b6b',
+                'community': '#4ecdc4', 
+                'individual': '#667eea',
+                'elderly': '#ffa726',
+                'child': '#66bb6a'
+            };
+            
+            const statusColors = {
+                'safe': '#4caf50',
+                'evacuating': '#ff9800',
+                'at_risk': '#f44336',
+                'helping': '#2196f3',
+                'inactive': '#9e9e9e'
+            };
+            
+            const baseColor = typeColors[agent.type] || '#667eea';
+            const statusColor = statusColors[agent.status] || baseColor;
+            
+            // 根据资源和风险调整标记大小
+            const resourceFactor = Math.max(0.5, agent.resources / 100);
+            const riskFactor = Math.max(0.5, agent.risk);
+            const baseRadius = 8;
+            const radius = baseRadius * resourceFactor * (2 - riskFactor);
+            
+            // 创建自定义图标
+            const iconHtml = `
+                <div class="agent-marker-container" data-agent-id="${agent.id}">
+                    <div class="agent-marker-main" style="
+                        background-color: ${baseColor};
+                        border: 3px solid ${statusColor};
+                        width: ${radius * 2}px;
+                        height: ${radius * 2}px;
+                        border-radius: 50%;
+                        position: relative;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                    ">
+                        <div class="agent-marker-pulse" style="
+                            position: absolute;
+                            top: -2px;
+                            left: -2px;
+                            right: -2px;
+                            bottom: -2px;
+                            border: 2px solid ${statusColor};
+                            border-radius: 50%;
+                            animation: agentPulse 2s infinite;
+                            opacity: 0.6;
+                        "></div>
+                        <div class="agent-marker-label" style="
+                            position: absolute;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%);
+                            color: white;
+                            font-size: ${Math.max(10, radius * 0.8)}px;
+                            font-weight: bold;
+                            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+                            font-family: 'Arial', sans-serif;
+                        ">${agent.id.replace('agent_', '')}</div>
+                    </div>
+                    <div class="agent-marker-tooltip" style="
+                        position: absolute;
+                        top: -35px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        background: rgba(0,0,0,0.8);
+                        color: white;
+                        padding: 4px 8px;
+                        border-radius: 4px;
+                        font-size: 11px;
+                        white-space: nowrap;
+                        opacity: 0;
+                        transition: opacity 0.3s;
+                        pointer-events: none;
+                        z-index: 1000;
+                    ">${agent.id}</div>
+                    </div>
+                    <div class="agent-marker-status" style="
+                        position: absolute;
+                        top: -5px;
+                        right: -5px;
+                        width: 12px;
+                        height: 12px;
+                        background-color: ${statusColor};
+                        border: 2px solid white;
+                        border-radius: 50%;
+                        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+                    "></div>
+                </div>
+            `;
+            
+            const marker = L.marker([agent.position.lat, agent.position.lng], {
+                icon: L.divIcon({
+                    className: 'custom-agent-marker',
+                    html: iconHtml,
+                    iconSize: [radius * 2 + 10, radius * 2 + 10],
+                    iconAnchor: [radius + 5, radius + 5]
+                })
+            });
+            
+            // 增强的弹出窗口
+            const popupContent = createEnhancedPopup(agent);
+            marker.bindPopup(popupContent, {
+                maxWidth: 300,
+                className: 'agent-popup-enhanced'
+            });
+            
+            // 添加点击事件
+            marker.on('click', function() {
+                selectAgent(agent);
+                focusOnAgent(agent);
+            });
+            
+            return marker;
+        }
+        
+        // 创建增强的弹出窗口内容
+        function createEnhancedPopup(agent) {
+            const resourceBar = createResourceBar(agent.resources);
+            const riskBar = createRiskBar(agent.risk);
+            
+            return `
+                <div class="agent-popup-content">
+                    <div class="popup-header">
+                        <h4 style="margin: 0; color: #333;">
+                            <i class="fas fa-user"></i> ${agent.id}
+                        </h4>
+                        <span class="agent-type-badge" style="
+                            background: ${getTypeColor(agent.type)};
+                            color: white;
+                            padding: 2px 8px;
+                            border-radius: 12px;
+                            font-size: 12px;
+                        ">${agent.typeName || agent.type}</span>
+                    </div>
+                    
+                    <div class="popup-body" style="margin-top: 10px;">
+                        <div class="status-row" style="margin-bottom: 8px;">
+                            <strong>状态:</strong> 
+                            <span class="status-badge status-${agent.status}">${agent.status}</span>
+                        </div>
+                        
+                        <div class="resource-row" style="margin-bottom: 8px;">
+                            <strong>资源:</strong> ${agent.resources}%
+                            <div style="margin-top: 3px;">${resourceBar}</div>
+                        </div>
+                        
+                        <div class="risk-row" style="margin-bottom: 8px;">
+                            <strong>风险等级:</strong> ${(agent.risk * 100).toFixed(1)}%
+                            <div style="margin-top: 3px;">${riskBar}</div>
+                        </div>
+                        
+                        <div class="position-row" style="font-size: 12px; color: #666;">
+                            <strong>位置:</strong> ${agent.position.lat.toFixed(4)}, ${agent.position.lng.toFixed(4)}
+                        </div>
+                    </div>
+                    
+                    <div class="popup-actions" style="margin-top: 10px; text-align: center;">
+                        <button onclick="focusOnAgent(agents.find(a => a.id === '${agent.id}'))" 
+                                class="btn btn-sm btn-primary" style="margin-right: 5px;">
+                            <i class="fas fa-crosshairs"></i> 聚焦
+                        </button>
+                        <button onclick="selectAgent(agents.find(a => a.id === '${agent.id}'))" 
+                                class="btn btn-sm btn-info">
+                            <i class="fas fa-info-circle"></i> 详情
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 创建资源进度条
+        function createResourceBar(resources) {
+            const percentage = Math.max(0, Math.min(100, resources));
+            const color = percentage > 70 ? '#4caf50' : percentage > 30 ? '#ff9800' : '#f44336';
+            
+            return `
+                <div style="
+                    width: 100%;
+                    height: 6px;
+                    background: #e0e0e0;
+                    border-radius: 3px;
+                    overflow: hidden;
+                ">
+                    <div style="
+                        width: ${percentage}%;
+                        height: 100%;
+                        background: ${color};
+                        transition: width 0.3s ease;
+                    "></div>
+                </div>
+            `;
+        }
+        
+        // 创建风险进度条
+        function createRiskBar(risk) {
+            const percentage = Math.max(0, Math.min(100, risk * 100));
+            const color = percentage < 30 ? '#4caf50' : percentage < 70 ? '#ff9800' : '#f44336';
+            
+            return `
+                <div style="
+                    width: 100%;
+                    height: 6px;
+                    background: #e0e0e0;
+                    border-radius: 3px;
+                    overflow: hidden;
+                ">
+                    <div style="
+                        width: ${percentage}%;
+                        height: 100%;
+                        background: ${color};
+                        transition: width 0.3s ease;
+                    "></div>
+                </div>
+            `;
+        }
+        
+        // 获取类型颜色
+        function getTypeColor(type) {
+            const colors = {
+                'family': '#ff6b6b',
+                'community': '#4ecdc4',
+                'individual': '#667eea',
+                'elderly': '#ffa726',
+                'child': '#66bb6a'
+            };
+            return colors[type] || '#667eea';
+        }
+        
+        // 聚焦到智能体
+        function focusOnAgent(agent) {
+            if (!agent || !map) return;
+            
+            // 平滑缩放到智能体位置
+            map.flyTo([agent.position.lat, agent.position.lng], 16, {
+                duration: 1.5,
+                easeLinearity: 0.25
+            });
+            
+            // 高亮显示智能体
+            highlightAgent(agent.id);
+            
+            // 显示详情面板
+            setTimeout(() => {
+                selectAgent(agent);
+            }, 1000);
+        }
+        
+        // 高亮显示智能体
+        function highlightAgent(agentId) {
+            // 清除之前的高亮
+            document.querySelectorAll('.agent-marker-container').forEach(marker => {
+                marker.classList.remove('highlighted');
+            });
+            
+            // 高亮选中的智能体
+            const markerElement = document.querySelector(`[data-agent-id="${agentId}"]`);
+            if (markerElement) {
+                markerElement.classList.add('highlighted');
+                
+                // 3秒后移除高亮
+                setTimeout(() => {
+                    markerElement.classList.remove('highlighted');
+                }, 3000);
+            }
+        }
+        
+        // 只更新智能体位置（性能优化）
+        function updateAgentPositions() {
+            agents.forEach(agent => {
+                const marker = agentMarkersMap.get(agent.id);
+                if (marker) {
+                    const currentLatLng = marker.getLatLng();
+                    const newLatLng = [agent.position.lat, agent.position.lng];
+                    
+                    // 只在位置真正改变时更新
+                    if (Math.abs(currentLatLng.lat - newLatLng[0]) > 0.0001 || 
+                        Math.abs(currentLatLng.lng - newLatLng[1]) > 0.0001) {
+                        marker.setLatLng(newLatLng);
+                    }
+                }
+            });
+        }
+        
+        // 优化的智能体列表更新
+        let agentListCache = new Map();
+        let lastListUpdateTime = 0;
+        const LIST_UPDATE_THROTTLE = 200; // 200ms节流
+        
+        function updateAgentList() {
+            const now = Date.now();
+            if (now - lastListUpdateTime < LIST_UPDATE_THROTTLE) {
+                return; // 节流：跳过过于频繁的更新
+            }
+            lastListUpdateTime = now;
+            
+            const agentList = document.getElementById('agentList');
+            if (!agentList) return;
+            
+            // 使用DocumentFragment批量操作DOM
+            const fragment = document.createDocumentFragment();
+            const existingItems = new Set();
+            
+            // 收集现有的智能体项目
+            Array.from(agentList.children).forEach(child => {
+                const agentId = child.dataset.agentId;
+                if (agentId) {
+                    existingItems.add(agentId);
+                    agentListCache.set(agentId, child);
+                }
+            });
+            
+            // 清空列表
+            agentList.innerHTML = '';
+            
+            // 限制显示的智能体数量（虚拟滚动概念）
+            const maxDisplayItems = 100;
+            const displayAgents = agents.slice(0, maxDisplayItems);
+            
+            displayAgents.forEach(agent => {
+                let agentItem = agentListCache.get(agent.id);
+                
+                if (!agentItem) {
+                    // 创建新的智能体项目
+                    agentItem = document.createElement('div');
+                    agentItem.className = 'agent-item';
+                    agentItem.dataset.agentId = agent.id;
+                    
+                    agentItem.addEventListener('click', function() {
+                        selectAgent(agent);
+                    });
+                    
+                    agentListCache.set(agent.id, agentItem);
+                } else {
+                    existingItems.delete(agent.id);
+                }
+                
+                // 更新内容（只在必要时）
+                const newContent = `
+                    <div>
+                        <strong>${agent.id}</strong>
+                        <span class="agent-type ${agent.typeClass}">${agent.typeName}</span>
+                    </div>
+                    <small>资源: ${agent.resources} | 风险: ${agent.risk.toFixed(2)}</small>
+                `;
+                
+                if (agentItem.innerHTML !== newContent) {
+                    agentItem.innerHTML = newContent;
+                }
+                
+                fragment.appendChild(agentItem);
+            });
+            
+            // 清理不再需要的缓存项目
+            existingItems.forEach(agentId => {
+                agentListCache.delete(agentId);
+            });
+            
+            // 批量添加到DOM
+            agentList.appendChild(fragment);
+            
+            // 如果智能体数量超过显示限制，显示提示
+            if (agents.length > maxDisplayItems) {
+                const moreInfo = document.createElement('div');
+                moreInfo.className = 'agent-item-info';
+                moreInfo.innerHTML = `<small>还有 ${agents.length - maxDisplayItems} 个智能体未显示</small>`;
+                agentList.appendChild(moreInfo);
+            }
+        }
+        
+        // 选择智能体
+        function selectAgent(agent) {
+            // 清除之前的选择
+            document.querySelectorAll('.agent-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // 选择新的智能体
+            event.currentTarget.classList.add('selected');
+            selectedAgent = agent;
+            
+            // 在地图上高亮显示
+            map.setView([agent.position.lat, agent.position.lng], 15);
+            
+            // 显示智能体详情面板
+            showAgentDetails(agent);
+        }
+        
+        // 显示智能体详情
+        function showAgentDetails(agent) {
+            document.getElementById('agentDetailsPanel').style.display = 'block';
+            document.getElementById('detailAgentId').textContent = agent.id;
+            document.getElementById('detailAgentType').textContent = agent.typeName;
+            document.getElementById('detailAgentPosition').textContent = `${agent.position.lat.toFixed(4)}, ${agent.position.lng.toFixed(4)}`;
+            document.getElementById('detailAgentResources').value = agent.resources;
+            document.getElementById('detailResourcesValue').textContent = agent.resources;
+            document.getElementById('detailAgentRisk').textContent = agent.risk.toFixed(2);
+            document.getElementById('detailAgentStatus').textContent = agent.status;
+        }
+        
+        // 关闭智能体详情面板
+        function closeAgentDetails() {
+            document.getElementById('agentDetailsPanel').style.display = 'none';
+            selectedAgent = null;
+            // 清除选择状态
+            document.querySelectorAll('.agent-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+        }
+        
+        // 更新智能体资源
+        function updateAgentResources() {
+            if (!selectedAgent) return;
+            
+            const newResources = parseInt(document.getElementById('detailAgentResources').value);
+            document.getElementById('detailResourcesValue').textContent = newResources;
+            selectedAgent.resources = newResources;
+            
+            // 发送更新到后端
+            sendCommand('update_agent', {
+                agentId: selectedAgent.id,
+                property: 'resources',
+                value: newResources
+            });
+            
+            // 更新智能体列表显示
+            updateAgentList();
+        }
+        
+        // 智能体行为干预
+        function interventeAgent(action) {
+            if (!selectedAgent) return;
+            
+            sendCommand('intervene_agent', {
+                agentId: selectedAgent.id,
+                action: action
+            });
+            
+            // 显示干预反馈
+            const actionNames = {
+                'move_to_safety': '引导至安全区',
+                'increase_caution': '提高警觉性',
+                'help_others': '协助他人',
+                'share_info': '分享信息',
+                'reset_behavior': '重置行为'
+            };
+            
+            alert(`已对智能体 ${selectedAgent.id} 执行干预：${actionNames[action]}`);
+        }
+        
+        // 仿真控制函数
+        function startSimulation() {
+            simulationState = 'running';
+            updateSimulationStatus();
+            sendCommand('start');
+        }
+        
+        function pauseSimulation() {
+            simulationState = 'paused';
+            updateSimulationStatus();
+            sendCommand('pause');
+        }
+        
+        function stopSimulation() {
+            simulationState = 'stopped';
+            currentStep = 0;
+            updateSimulationStatus();
+            sendCommand('stop');
+        }
+        
+        function resetSimulation() {
+            simulationState = 'stopped';
+            currentStep = 0;
+            updateSimulationStatus();
+            sendCommand('reset');
+            generateSampleAgents();
+        }
+        
+        // 更新仿真状态显示
+        function updateSimulationStatus() {
+            const statusIndicator = document.getElementById('simStatus');
+            const statusText = document.getElementById('simStatusText');
+            
+            statusIndicator.className = 'status-indicator';
+            
+            switch(simulationState) {
+                case 'running':
+                    statusIndicator.classList.add('status-running');
+                    statusText.textContent = '仿真运行中';
+                    break;
+                case 'paused':
+                    statusIndicator.classList.add('status-paused');
+                    statusText.textContent = '仿真已暂停';
+                    break;
+                case 'stopped':
+                    statusIndicator.classList.add('status-stopped');
+                    statusText.textContent = '仿真已停止';
+                    break;
+            }
+        }
+        
+        // 发送命令到后端
+        function sendCommand(command, data = {}) {
+            if (ws && ws.connected) {
+                ws.emit('command', {
+                    command: command,
+                    data: data
+                });
+            }
+        }
+        
+        // 处理仿真更新（优化版）
+        let lastUpdateTime = 0;
+        const UPDATE_INTERVAL = 100; // 限制更新频率为100ms
+        
+        function handleSimulationUpdate(data) {
+            const now = Date.now();
+            if (now - lastUpdateTime < UPDATE_INTERVAL) {
+                return; // 跳过过于频繁的更新
+            }
+            lastUpdateTime = now;
+            
+            if (data.type === 'step_update') {
+                currentStep = data.step;
+                
+                // 批量更新DOM元素
+                const updates = {
+                    'stepCount': currentStep,
+                    'timeDisplay': `时间: ${formatTime(currentStep)}`,
+                    'activeAgents': data.activeAgents || 0,
+                    'evacuatedCount': data.evacuatedCount || 0,
+                    'helpActions': data.helpActions || 0
+                };
+                
+                // 使用DocumentFragment批量更新DOM
+                Object.entries(updates).forEach(([id, value]) => {
+                    const element = document.getElementById(id);
+                    if (element && element.textContent !== String(value)) {
+                        element.textContent = value;
+                    }
+                });
+                
+                // 节流图表更新
+                if (data.behaviorStats || data.riskStats) {
+                    debouncedChartUpdate(data);
+                }
+                
+                // 更新智能体显示（如果有智能体数据）
+                if (data.agents) {
+                    agents = data.agents;
+                    queueUpdate('agent');
+                    queueUpdate('map');
+                }
+                
+                // 更新洪水蔓延可视化
+                if (data.floodData) {
+                    updateFloodVisualization(data.floodData);
+                }
+            }
+        }
+        
+        // 格式化时间显示
+        function formatTime(steps) {
+            const hours = Math.floor(steps / 3600);
+            const minutes = Math.floor((steps % 3600) / 60);
+            const seconds = steps % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+        
+        // 优化的图表更新函数
+        let chartUpdateQueue = [];
+        let isUpdatingCharts = false;
+        
+        // 防抖的图表更新
+        const debouncedChartUpdate = debounce(function(data) {
+            chartUpdateQueue.push(data);
+            processChartUpdates();
+        }, 200);
+        
+        function processChartUpdates() {
+            if (isUpdatingCharts || chartUpdateQueue.length === 0) return;
+            
+            isUpdatingCharts = true;
+            requestAnimationFrame(() => {
+                const latestData = chartUpdateQueue[chartUpdateQueue.length - 1];
+                chartUpdateQueue = [];
+                
+                updateChartsWithData(latestData);
+                isUpdatingCharts = false;
+            });
+        }
+        
+        function updateCharts() {
+            if (!charts || !charts.population || !charts.population.data) {
+                return; // 图表未初始化，跳过更新
+            }
+            
+            const typeCounts = [0, 0, 0];
+            agents.forEach(agent => {
+                switch(agent.type) {
+                    case 'family': typeCounts[0]++; break;
+                    case 'community': typeCounts[1]++; break;
+                    case 'universal': typeCounts[2]++; break;
+                }
+            });
+            
+            // 只在数据真正改变时更新
+            const currentData = charts.population.data.datasets[0].data;
+            if (JSON.stringify(currentData) !== JSON.stringify(typeCounts)) {
+                charts.population.data.datasets[0].data = typeCounts;
+                charts.population.update('none'); // 禁用动画以提高性能
+            }
+        }
+        
+        function updateChartsWithData(data) {
+            try {
+                // 更新行为统计图表
+                if (data.behaviorStats && charts.behavior) {
+                    const labels = charts.behavior.data.labels;
+                    const helpData = charts.behavior.data.datasets[0].data;
+                    const evacuationData = charts.behavior.data.datasets[1].data;
+                    
+                    labels.push(currentStep);
+                    helpData.push(data.behaviorStats.helpActions || 0);
+                    evacuationData.push(data.behaviorStats.evacuations || 0);
+                    
+                    // 保持最近50个数据点
+                    if (labels.length > 50) {
+                        labels.shift();
+                        helpData.shift();
+                        evacuationData.shift();
+                    }
+                    
+                    charts.behavior.update('none'); // 禁用动画
+                }
+                
+                // 更新风险分布图表
+                if (data.riskStats && charts.risk) {
+                    const newData = [
+                        data.riskStats.low || 0,
+                        data.riskStats.medium || 0,
+                        data.riskStats.high || 0
+                    ];
+                    
+                    // 只在数据改变时更新
+                    const currentData = charts.risk.data.datasets[0].data;
+                    if (JSON.stringify(currentData) !== JSON.stringify(newData)) {
+                        charts.risk.data.datasets[0].data = newData;
+                        charts.risk.update('none'); // 禁用动画
+                    }
+                }
+            } catch (error) {
+                console.warn('图表更新错误:', error);
+            }
+        }
+        
+        // 场景编辑功能
+        let editMode = null;
+        let isDrawing = false;
+        let currentDrawingLayer = null;
+        let drawingPoints = [];
+        let scenarioLayers = {
+            floodZones: [],
+            safeZones: [],
+            barriers: []
+        };
+        
+        // 洪水可视化变量
+        let floodLayers = [];
+        let floodAnimationId = null;
+        let floodIntensityData = new Map();
+        let floodSpreadAnimation = null;
+        
+        // 洪水可视化配置
+        const floodConfig = {
+            colors: {
+                low: '#e3f2fd',      // 浅蓝色
+                medium: '#2196f3',   // 蓝色
+                high: '#1565c0',     // 深蓝色
+                critical: '#0d47a1'  // 极深蓝色
+            },
+            opacities: {
+                low: 0.3,
+                medium: 0.5,
+                high: 0.7,
+                critical: 0.9
+            },
+            animationDuration: 2000,
+            pulseInterval: 1500,
+            // 新增洪水路径配置
+            pathConfig: {
+                width: 8,
+                arrowSize: 15,
+                flowSpeed: 2000,
+                pathOpacity: 0.8
+            },
+            // 地形模拟配置
+            terrainConfig: {
+                elevationLevels: 5,
+                slopeThreshold: 0.1,
+                riverWidth: 20
+            }
+        };
+        
+        // 洪水路径和流向数据
+        let floodPaths = [];
+        let flowDirections = new Map();
+        let terrainData = new Map();
+        
+        function addFloodZone() {
+            exitEditMode(); // 先退出之前的编辑模式
+            editMode = 'flood';
+            isDrawing = false;
+            map.getContainer().style.cursor = 'crosshair';
+            showEditingHint('点击地图开始绘制洪水区域，再次点击完成绘制');
+            
+            // 添加绘制事件监听
+            map.on('click', handleFloodDrawing);
+            map.on('contextmenu', cancelDrawing);
+        }
+        
+        function addSafeZone() {
+            exitEditMode(); // 先退出之前的编辑模式
+            editMode = 'safe';
+            isDrawing = false;
+            map.getContainer().style.cursor = 'crosshair';
+            showEditingHint('点击地图开始绘制安全区域，再次点击完成绘制');
+            
+            // 添加绘制事件监听
+            map.on('click', handleSafeZoneDrawing);
+            map.on('contextmenu', cancelDrawing);
+        }
+        
+        function addBarrier() {
+            exitEditMode(); // 先退出之前的编辑模式
+            editMode = 'barrier';
+            map.getContainer().style.cursor = 'crosshair';
+            showEditingHint('点击地图添加道路阻塞点');
+            
+            // 添加绘制事件监听
+            map.on('click', handleBarrierDrawing);
+            map.on('contextmenu', cancelDrawing);
+        }
+        
+        function clearScenario() {
+            if (confirm('确定要清除所有场景设置吗？')) {
+                // 清除所有场景图层
+                Object.values(scenarioLayers).forEach(layerArray => {
+                    layerArray.forEach(layer => map.removeLayer(layer));
+                });
+                scenarioLayers = {
+                    floodZones: [],
+                    safeZones: [],
+                    barriers: []
+                };
+                editMode = null;
+                map.getContainer().style.cursor = '';
+                hideEditingHint();
+                sendCommand('clear_scenario');
+            }
+        }
+        
+        function showEditingHint(message) {
+            let hint = document.getElementById('editingHint');
+            if (!hint) {
+                hint = document.createElement('div');
+                hint.id = 'editingHint';
+                hint.style.cssText = `
+                    position: absolute;
+                    top: 50px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    background: rgba(0,0,0,0.8);
+                    color: white;
+                    padding: 10px 20px;
+                    border-radius: 5px;
+                    z-index: 1001;
+                    font-size: 14px;
+                `;
+                document.querySelector('.simulation-map').appendChild(hint);
+            }
+            hint.textContent = message;
+            hint.style.display = 'block';
+        }
+        
+        function hideEditingHint() {
+            const hint = document.getElementById('editingHint');
+            if (hint) {
+                hint.style.display = 'none';
+            }
+        }
+        
+        function handleMapClick(e) {
+            if (!editMode) return;
+            
+            switch(editMode) {
+                case 'flood':
+                    handleFloodDrawing(e);
+                    break;
+                case 'safe':
+                    handleSafeZoneDrawing(e);
+                    break;
+                case 'barrier':
+                    handleBarrierDrawing(e);
+                    break;
+            }
+        }
+        
+        // 洪水区域绘制处理
+        function handleFloodDrawing(e) {
+            const latlng = e.latlng;
+            
+            if (!isDrawing) {
+                // 开始绘制
+                isDrawing = true;
+                drawingPoints = [latlng];
+                
+                // 创建临时圆形预览
+                currentDrawingLayer = L.circle(latlng, {
+                    radius: 100,
+                    color: '#ff4444',
+                    fillColor: '#ff4444',
+                    fillOpacity: 0.2,
+                    weight: 2,
+                    dashArray: '5, 5'
+                }).addTo(map);
+                
+                showEditingHint('移动鼠标调整大小，再次点击确认洪水区域');
+                map.on('mousemove', updateFloodPreview);
+            } else {
+                // 完成绘制
+                finishFloodDrawing(latlng);
+            }
+        }
+        
+        function updateFloodPreview(e) {
+            if (!isDrawing || !currentDrawingLayer) return;
+            
+            const startPoint = drawingPoints[0];
+            const currentPoint = e.latlng;
+            const radius = Math.max(50, Math.min(500, startPoint.distanceTo(currentPoint)));
+            
+            currentDrawingLayer.setRadius(radius);
+        }
+        
+        function finishFloodDrawing(latlng) {
+            if (!currentDrawingLayer) return;
+            
+            const startPoint = drawingPoints[0];
+            const radius = Math.max(100, Math.min(500, startPoint.distanceTo(latlng)));
+            
+            // 移除临时预览
+            map.removeLayer(currentDrawingLayer);
+            map.off('mousemove', updateFloodPreview);
+            
+            // 创建最终的洪水区域
+            const floodZone = L.circle(startPoint, {
+                radius: radius,
+                color: '#ff4444',
+                fillColor: '#ff4444',
+                fillOpacity: 0.4,
+                weight: 3
+            }).addTo(map);
+            
+            floodZone.bindPopup(`<div class="scenario-popup"><h6><i class="fas fa-water"></i> 洪水区域</h6><p>半径: ${Math.round(radius)}米</p><button class="btn btn-sm btn-danger" onclick="removeScenarioLayer(this, 'flood')">删除</button></div>`);
+            
+            scenarioLayers.floodZones.push(floodZone);
+            
+            sendCommand('add_flood_zone', {
+                lat: startPoint.lat,
+                lng: startPoint.lng,
+                radius: radius
+            });
+            
+            // 重置绘制状态
+            resetDrawingState();
+            showEditingHint('洪水区域已创建！继续点击创建更多区域，或右键退出编辑模式');
+        }
+        
+        // 安全区域绘制处理
+        function handleSafeZoneDrawing(e) {
+            const latlng = e.latlng;
+            
+            if (!isDrawing) {
+                // 开始绘制
+                isDrawing = true;
+                drawingPoints = [latlng];
+                
+                // 创建临时圆形预览
+                currentDrawingLayer = L.circle(latlng, {
+                    radius: 100,
+                    color: '#44ff44',
+                    fillColor: '#44ff44',
+                    fillOpacity: 0.2,
+                    weight: 2,
+                    dashArray: '5, 5'
+                }).addTo(map);
+                
+                showEditingHint('移动鼠标调整大小，再次点击确认安全区域');
+                map.on('mousemove', updateSafeZonePreview);
+            } else {
+                // 完成绘制
+                finishSafeZoneDrawing(latlng);
+            }
+        }
+        
+        function updateSafeZonePreview(e) {
+            if (!isDrawing || !currentDrawingLayer) return;
+            
+            const startPoint = drawingPoints[0];
+            const currentPoint = e.latlng;
+            const radius = Math.max(50, Math.min(400, startPoint.distanceTo(currentPoint)));
+            
+            currentDrawingLayer.setRadius(radius);
+        }
+        
+        function finishSafeZoneDrawing(latlng) {
+            if (!currentDrawingLayer) return;
+            
+            const startPoint = drawingPoints[0];
+            const radius = Math.max(80, Math.min(400, startPoint.distanceTo(latlng)));
+            
+            // 移除临时预览
+            map.removeLayer(currentDrawingLayer);
+            map.off('mousemove', updateSafeZonePreview);
+            
+            // 创建最终的安全区域
+            const safeZone = L.circle(startPoint, {
+                radius: radius,
+                color: '#44ff44',
+                fillColor: '#44ff44',
+                fillOpacity: 0.4,
+                weight: 3
+            }).addTo(map);
+            
+            safeZone.bindPopup(`<div class="scenario-popup"><h6><i class="fas fa-shield-alt"></i> 安全区域</h6><p>半径: ${Math.round(radius)}米</p><p>容量: ${Math.round(radius / 10)}人</p><button class="btn btn-sm btn-danger" onclick="removeScenarioLayer(this, 'safe')">删除</button></div>`);
+            
+            scenarioLayers.safeZones.push(safeZone);
+            
+            sendCommand('add_safe_zone', {
+                lat: startPoint.lat,
+                lng: startPoint.lng,
+                radius: radius
+            });
+            
+            // 重置绘制状态
+            resetDrawingState();
+            showEditingHint('安全区域已创建！继续点击创建更多区域，或右键退出编辑模式');
+        }
+        
+        // 障碍物绘制处理
+        function handleBarrierDrawing(e) {
+            const latlng = e.latlng;
+            
+            const barrier = L.circleMarker(latlng, {
+                radius: 12,
+                color: '#ffaa00',
+                fillColor: '#ffaa00',
+                fillOpacity: 0.8,
+                weight: 3
+            }).addTo(map);
+            
+            barrier.bindPopup(`<div class="scenario-popup"><h6><i class="fas fa-road"></i> 道路阻塞</h6><p>类型: 障碍物</p><button class="btn btn-sm btn-danger" onclick="removeScenarioLayer(this, 'barrier')">删除</button></div>`);
+            
+            scenarioLayers.barriers.push(barrier);
+            
+            sendCommand('add_barrier', {
+                lat: latlng.lat,
+                lng: latlng.lng
+            });
+            
+            showEditingHint('障碍物已添加！继续点击添加更多障碍物，或右键退出编辑模式');
+        }
+        
+        // 重置绘制状态
+        function resetDrawingState() {
+            isDrawing = false;
+            currentDrawingLayer = null;
+            drawingPoints = [];
+            map.off('mousemove', updateFloodPreview);
+            map.off('mousemove', updateSafeZonePreview);
+        }
+        
+        // 取消绘制
+        function cancelDrawing(e) {
+            e.preventDefault();
+            
+            if (currentDrawingLayer) {
+                map.removeLayer(currentDrawingLayer);
+            }
+            
+            resetDrawingState();
+            exitEditMode();
+        }
+        
+        // 洪水可视化函数
+        function updateFloodVisualization(floodData) {
+            if (!floodData || !Array.isArray(floodData)) {
+                return;
+            }
+            
+            // 清除旧的洪水层
+            clearFloodLayers();
+            
+            // 处理洪水数据并创建新的可视化层
+            floodData.forEach(floodPoint => {
+                createFloodLayer(floodPoint);
+            });
+            
+            // 启动洪水扩散动画
+            startFloodSpreadAnimation();
+        }
+        
+        function createFloodLayer(floodPoint) {
+            const { lat, lng, intensity, radius } = floodPoint;
+            
+            // 根据强度确定颜色和透明度
+            const level = getFloodLevel(intensity);
+            const color = floodConfig.colors[level];
+            const opacity = floodConfig.opacities[level];
+            
+            // 创建洪水圆圈
+            const floodCircle = L.circle([lat, lng], {
+                radius: radius || 100,
+                fillColor: color,
+                color: color,
+                weight: 2,
+                opacity: 0.8,
+                fillOpacity: opacity,
+                className: 'flood-layer flood-level-' + level
+            }).addTo(map);
+            
+            // 添加脉冲效果
+            addFloodPulseEffect(floodCircle, level);
+            
+            // 生成洪水路径
+            generateFloodPaths(lat, lng, intensity, radius);
+            
+            // 存储洪水层
+            floodLayers.push(floodCircle);
+            
+            // 更新强度数据
+            const key = `${lat.toFixed(6)},${lng.toFixed(6)}`;
+            floodIntensityData.set(key, { intensity, level, circle: floodCircle });
+        }
+        
+        // 生成洪水路径
+        function generateFloodPaths(centerLat, centerLng, intensity, radius) {
+            const pathCount = Math.floor(intensity * 8) + 4; // 根据强度确定路径数量
+            const radiusKm = (radius || 100) / 1000; // 转换为公里
+            
+            for (let i = 0; i < pathCount; i++) {
+                const angle = (360 / pathCount) * i;
+                const path = generateSingleFloodPath(centerLat, centerLng, angle, radiusKm, intensity);
+                if (path && path.length > 1) {
+                    createFloodPathVisualization(path, intensity);
+                    floodPaths.push(path);
+                }
+            }
+        }
+        
+        // 生成单条洪水路径
+        function generateSingleFloodPath(startLat, startLng, angle, maxDistance, intensity) {
+            const path = [[startLat, startLng]];
+            let currentLat = startLat;
+            let currentLng = startLng;
+            let currentDistance = 0;
+            const stepSize = 0.001; // 约100米
+            
+            // 模拟地形影响的路径生成
+            while (currentDistance < maxDistance) {
+                // 基础方向（考虑地形坡度）
+                let directionAngle = angle + getTerrainInfluence(currentLat, currentLng);
+                
+                // 添加随机扰动模拟自然水流
+                directionAngle += (Math.random() - 0.5) * 30;
+                
+                // 计算下一个点
+                const deltaLat = stepSize * Math.cos(directionAngle * Math.PI / 180);
+                const deltaLng = stepSize * Math.sin(directionAngle * Math.PI / 180);
+                
+                currentLat += deltaLat;
+                currentLng += deltaLng;
+                currentDistance += stepSize;
+                
+                // 检查是否遇到障碍物或地形变化
+                if (!isValidFloodPath(currentLat, currentLng)) {
+                    break;
+                }
+                
+                path.push([currentLat, currentLng]);
+                
+                // 强度衰减
+                if (Math.random() < 0.1 * (1 - intensity)) {
+                    break;
+                }
+            }
+            
+            return path;
+        }
+        
+        // 获取地形影响（模拟坡度和高程）
+        function getTerrainInfluence(lat, lng) {
+            const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+            if (!terrainData.has(key)) {
+                // 模拟地形数据（实际应用中应从DEM数据获取）
+                const elevation = Math.sin(lat * 100) * Math.cos(lng * 100) * 50;
+                const slope = Math.random() * 10 - 5; // -5到5度的坡度
+                terrainData.set(key, { elevation, slope });
+            }
+            
+            const terrain = terrainData.get(key);
+            return terrain.slope * 2; // 坡度影响流向
+        }
+        
+        // 检查路径有效性
+        function isValidFloodPath(lat, lng) {
+            // 检查是否在地图边界内
+            const bounds = map.getBounds();
+            if (lat < bounds.getSouth() || lat > bounds.getNorth() || 
+                lng < bounds.getWest() || lng > bounds.getEast()) {
+                return false;
+            }
+            
+            // 检查是否遇到障碍物
+            if (simulation_state.scenario && simulation_state.scenario.barriers) {
+                for (const barrier of simulation_state.scenario.barriers) {
+                    const distance = getDistance(lat, lng, barrier.lat, barrier.lng);
+                    if (distance < 0.0005) { // 约50米
+                        return false;
+                    }
+                }
+            }
+            
+            return true;
+        }
+        
+        function getFloodLevel(intensity) {
+            if (intensity >= 0.8) return 'critical';
+            if (intensity >= 0.6) return 'high';
+            if (intensity >= 0.3) return 'medium';
+            return 'low';
+        }
+        
+        function addFloodPulseEffect(circle, level) {
+            let pulseRadius = circle.getRadius();
+            let growing = true;
+            const baseRadius = pulseRadius;
+            const maxRadius = baseRadius * 1.3;
+            const minRadius = baseRadius * 0.8;
+            let opacity = floodConfig.opacities[level];
+            let colorIntensity = 0;
+            
+            const pulse = () => {
+                if (growing) {
+                    pulseRadius += 2;
+                    opacity += 0.02;
+                    colorIntensity += 0.1;
+                    if (pulseRadius >= maxRadius) {
+                        growing = false;
+                    }
+                } else {
+                    pulseRadius -= 2;
+                    opacity -= 0.02;
+                    colorIntensity -= 0.1;
+                    if (pulseRadius <= minRadius) {
+                        growing = true;
+                    }
+                }
+                
+                // 动态颜色变化
+                const baseColor = floodConfig.colors[level];
+                const dynamicColor = adjustColorIntensity(baseColor, colorIntensity);
+                
+                circle.setRadius(pulseRadius);
+                circle.setStyle({
+                    fillOpacity: Math.max(0.1, Math.min(1, opacity)),
+                    color: dynamicColor,
+                    fillColor: dynamicColor
+                });
+                
+                // 添加波纹效果
+                if (Math.random() < 0.05) {
+                    createWaveRipple(circle.getLatLng(), baseRadius, level);
+                }
+            };
+            
+            // 根据洪水等级调整脉冲频率
+            const interval = level === 'critical' ? 80 : 
+                           level === 'high' ? 120 : 
+                           level === 'medium' ? 160 : 250;
+            
+            const pulseInterval = setInterval(pulse, interval);
+            
+            // 存储interval以便后续清理
+            circle._pulseInterval = pulseInterval;
+        }
+        
+        // 调整颜色强度
+        function adjustColorIntensity(hexColor, intensity) {
+            // 将十六进制颜色转换为RGB
+            const r = parseInt(hexColor.slice(1, 3), 16);
+            const g = parseInt(hexColor.slice(3, 5), 16);
+            const b = parseInt(hexColor.slice(5, 7), 16);
+            
+            // 调整亮度
+            const factor = 1 + intensity * 0.3;
+            const newR = Math.min(255, Math.max(0, Math.floor(r * factor)));
+            const newG = Math.min(255, Math.max(0, Math.floor(g * factor)));
+            const newB = Math.min(255, Math.max(0, Math.floor(b * factor)));
+            
+            return `rgb(${newR}, ${newG}, ${newB})`;
+        }
+        
+        // 创建波纹效果
+        function createWaveRipple(center, baseRadius, level) {
+            const ripple = L.circle(center, {
+                radius: baseRadius * 0.5,
+                fillColor: 'transparent',
+                color: floodConfig.colors[level],
+                weight: 2,
+                opacity: 0.8,
+                fillOpacity: 0
+            }).addTo(map);
+            
+            let currentRadius = baseRadius * 0.5;
+            const maxRadius = baseRadius * 2;
+            let opacity = 0.8;
+            
+            const animate = () => {
+                currentRadius += baseRadius * 0.1;
+                opacity -= 0.04;
+                
+                ripple.setRadius(currentRadius);
+                ripple.setStyle({ opacity: Math.max(0, opacity) });
+                
+                if (currentRadius < maxRadius && opacity > 0) {
+                    requestAnimationFrame(animate);
+                } else {
+                    map.removeLayer(ripple);
+                }
+            };
+            
+            requestAnimationFrame(animate);
+        }
+        
+        function startFloodSpreadAnimation() {
+            if (floodSpreadAnimation) {
+                clearInterval(floodSpreadAnimation);
+            }
+            
+            let animationStep = 0;
+            const maxSteps = 20;
+            
+            floodSpreadAnimation = setInterval(() => {
+                animationStep++;
+                
+                // 更新洪水层的动画效果
+                floodLayers.forEach((layer, index) => {
+                    const delay = index * 100; // 错开动画时间
+                    
+                    setTimeout(() => {
+                        // 添加波纹效果
+                        addRippleEffect(layer);
+                    }, delay);
+                });
+                
+                if (animationStep >= maxSteps) {
+                    clearInterval(floodSpreadAnimation);
+                    floodSpreadAnimation = null;
+                }
+            }, 200);
+        }
+        
+        function addRippleEffect(layer) {
+            const center = layer.getLatLng();
+            const baseRadius = layer.getRadius();
+            
+            // 创建波纹圆圈
+            const ripple = L.circle(center, {
+                radius: baseRadius,
+                fillColor: 'transparent',
+                color: '#2196f3',
+                weight: 3,
+                opacity: 0.8,
+                fillOpacity: 0
+            }).addTo(map);
+            
+            // 波纹扩散动画
+            let currentRadius = baseRadius;
+            const maxRadius = baseRadius * 2;
+            let opacity = 0.8;
+            
+            const animate = () => {
+                currentRadius += 10;
+                opacity -= 0.05;
+                
+                ripple.setRadius(currentRadius);
+                ripple.setStyle({ opacity: Math.max(0, opacity) });
+                
+                if (currentRadius < maxRadius && opacity > 0) {
+                    requestAnimationFrame(animate);
+                } else {
+                    map.removeLayer(ripple);
+                }
+            };
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // 创建洪水路径可视化
+        function createFloodPathVisualization(path, intensity) {
+            if (path.length < 2) return;
+            
+            const level = getFloodLevel(intensity);
+            const color = floodConfig.colors[level];
+            const pathWidth = floodConfig.pathConfig.width * intensity;
+            
+            // 创建路径线
+            const pathLine = L.polyline(path, {
+                color: color,
+                weight: pathWidth,
+                opacity: floodConfig.pathConfig.pathOpacity,
+                className: 'flood-path flood-level-' + level
+            }).addTo(map);
+            
+            // 添加流向箭头
+            addFlowArrows(path, color, intensity);
+            
+            // 添加流动动画
+            addFlowAnimation(pathLine, intensity);
+            
+            floodLayers.push(pathLine);
+        }
+        
+        // 添加流向箭头
+        function addFlowArrows(path, color, intensity) {
+            const arrowInterval = Math.max(3, Math.floor(path.length / 8)); // 箭头间隔
+            const arrowSize = floodConfig.pathConfig.arrowSize * intensity;
+            
+            for (let i = arrowInterval; i < path.length; i += arrowInterval) {
+                const currentPoint = path[i];
+                const prevPoint = path[i - 1];
+                
+                // 计算箭头方向
+                const angle = Math.atan2(
+                    currentPoint[1] - prevPoint[1],
+                    currentPoint[0] - prevPoint[0]
+                ) * 180 / Math.PI;
+                
+                // 创建箭头标记
+                const arrowIcon = L.divIcon({
+                    html: `<div class="flood-arrow" style="
+                        width: ${arrowSize}px;
+                        height: ${arrowSize}px;
+                        background-color: ${color};
+                        transform: rotate(${angle + 90}deg);
+                        clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+                        opacity: 0.8;
+                    "></div>`,
+                    className: 'flood-arrow-marker',
+                    iconSize: [arrowSize, arrowSize],
+                    iconAnchor: [arrowSize/2, arrowSize/2]
+                });
+                
+                const arrowMarker = L.marker(currentPoint, {
+                    icon: arrowIcon,
+                    interactive: false
+                }).addTo(map);
+                
+                floodLayers.push(arrowMarker);
+            }
+        }
+        
+        // 添加流动动画
+        function addFlowAnimation(pathLine, intensity) {
+            const flowSpeed = floodConfig.pathConfig.flowSpeed / intensity;
+            let animationOffset = 0;
+            
+            const animateFlow = () => {
+                animationOffset += 5;
+                if (animationOffset > 100) animationOffset = 0;
+                
+                // 更新路径样式以显示流动效果
+                const element = pathLine.getElement();
+                if (element) {
+                    element.style.strokeDasharray = '10 10';
+                    element.style.strokeDashoffset = -animationOffset;
+                }
+            };
+            
+            pathLine.flowAnimation = setInterval(animateFlow, 100);
+        }
+        
+        function clearFloodLayers() {
+            floodLayers.forEach(layer => {
+                // 清理脉冲动画
+                if (layer._pulseInterval) {
+                    clearInterval(layer._pulseInterval);
+                }
+                // 清理流动动画
+                if (layer.flowAnimation) {
+                    clearInterval(layer.flowAnimation);
+                }
+                map.removeLayer(layer);
+            });
+            floodLayers = [];
+            floodPaths = [];
+            flowDirections.clear();
+            floodIntensityData.clear();
+        }
+        
+        function toggleFloodVisualization() {
+            const isVisible = floodLayers.length > 0 && map.hasLayer(floodLayers[0]);
+            
+            floodLayers.forEach(layer => {
+                if (isVisible) {
+                    map.removeLayer(layer);
+                } else {
+                    map.addLayer(layer);
+                }
+            });
+            
+            // 更新切换按钮状态
+            const toggleBtn = document.getElementById('toggleFloodBtn');
+            if (toggleBtn) {
+                toggleBtn.textContent = isVisible ? '显示洪水' : '隐藏洪水';
+                toggleBtn.className = isVisible ? 'btn btn-primary' : 'btn btn-secondary';
+            }
+        }
+        
+        function removeScenarioLayer(button, type) {
+            const popup = button.closest('.leaflet-popup');
+            const layer = popup._source;
+            
+            map.removeLayer(layer);
+            
+            // 从数组中移除
+            const layerArray = scenarioLayers[type + 'Zones'] || scenarioLayers[type + 's'];
+            const index = layerArray.indexOf(layer);
+            if (index > -1) {
+                layerArray.splice(index, 1);
+            }
+            
+            sendCommand('remove_scenario_element', {
+                type: type,
+                lat: layer.getLatLng().lat,
+                lng: layer.getLatLng().lng
+            });
+        }
+        
+        function exitEditMode() {
+            editMode = null;
+            map.getContainer().style.cursor = '';
+            hideEditingHint();
+        }
+        
+        function loadScenarioFromData(scenarioData) {
+            // 清除现有场景图层
+            Object.values(scenarioLayers).forEach(layerArray => {
+                layerArray.forEach(layer => map.removeLayer(layer));
+            });
+            scenarioLayers = {
+                floodZones: [],
+                safeZones: [],
+                barriers: []
+            };
+            
+            // 加载洪水区域
+            if (scenarioData.flood_zones) {
+                scenarioData.flood_zones.forEach(zone => {
+                    // 安全检查坐标属性
+                    const lat = zone.lat || zone.latitude || 0;
+                    const lng = zone.lng || zone.longitude || zone.lon || 0;
+                    
+                    if (lat && lng) {
+                        const floodZone = L.circle([lat, lng], {
+                            radius: zone.radius || 100,
+                            color: '#ff4444',
+                            fillColor: '#ff4444',
+                            fillOpacity: 0.3,
+                            weight: 2
+                        }).addTo(map);
+                        
+                        floodZone.bindPopup(`洪水区域<br>强度: ${zone.intensity || '未知'}<br><button onclick="removeScenarioLayer(this, 'flood')">删除</button>`);
+                        scenarioLayers.floodZones.push(floodZone);
+                    }
+                });
+            }
+            
+            // 加载安全区域
+            if (scenarioData.safe_zones) {
+                scenarioData.safe_zones.forEach(zone => {
+                    // 安全检查坐标属性
+                    const lat = zone.lat || zone.latitude || 0;
+                    const lng = zone.lng || zone.longitude || zone.lon || 0;
+                    
+                    if (lat && lng) {
+                        const safeZone = L.circle([lat, lng], {
+                            radius: zone.radius || 100,
+                            color: '#44ff44',
+                            fillColor: '#44ff44',
+                            fillOpacity: 0.3,
+                            weight: 2
+                        }).addTo(map);
+                        
+                        safeZone.bindPopup(`安全区域<br>容量: ${zone.capacity || '未知'}<br><button onclick="removeScenarioLayer(this, 'safe')">删除</button>`);
+                        scenarioLayers.safeZones.push(safeZone);
+                    }
+                });
+            }
+            
+            // 加载道路阻塞
+            if (scenarioData.barriers) {
+                scenarioData.barriers.forEach(barrier => {
+                    // 安全检查坐标属性
+                    const lat = barrier.lat || barrier.latitude || 0;
+                    const lng = barrier.lng || barrier.longitude || barrier.lon || 0;
+                    
+                    if (lat && lng) {
+                        const barrierMarker = L.circleMarker([lat, lng], {
+                            radius: 10,
+                            color: '#ffaa00',
+                            fillColor: '#ffaa00',
+                            fillOpacity: 0.8,
+                            weight: 3
+                        }).addTo(map);
+                        
+                        barrierMarker.bindPopup(`道路阻塞<br>类型: ${barrier.type || '未知'}<br><button onclick="removeScenarioLayer(this, 'barrier')">删除</button>`);
+                        scenarioLayers.barriers.push(barrierMarker);
+                    }
+                });
+            }
+        }
+        
+        // 移动智能体
+        function moveAgentTo(agent, latlng) {
+            agent.position = { lat: latlng.lat, lng: latlng.lng };
+            sendCommand('move_agent', {
+                agentId: agent.id,
+                position: agent.position
+            });
+        }
+        
+        // 更新参数
+        function updateParameter(paramName, value) {
+            sendCommand('update_parameter', {
+                parameter: paramName,
+                value: value
+            });
+        }
+        
+        // 更新仿真速度
+        function updateSimulationSpeed(speed) {
+            sendCommand('update_speed', { speed: speed });
+        }
+        
+        // 显示帮助
+        function showHelp() {
+            alert('交互式仿真世界使用说明：\n\n1. 使用左侧控制面板控制仿真\n2. 点击智能体列表选择智能体\n3. 在地图上点击移动选中的智能体\n4. 使用场景编辑器添加灾害和障碍\n5. 观察底部图表了解仿真统计');
+        }
+        
+        // 显示通知
+         function showNotification(message, type = 'info') {
+             // 创建通知元素
+             const notification = document.createElement('div');
+             notification.style.cssText = `
+                 position: fixed;
+                 top: 20px;
+                 right: 20px;
+                 padding: 15px 20px;
+                 border-radius: 5px;
+                 color: white;
+                 font-weight: bold;
+                 z-index: 9999;
+                 max-width: 300px;
+                 word-wrap: break-word;
+                 transition: all 0.3s ease;
+             `;
+             
+             // 根据类型设置颜色
+             switch(type) {
+                 case 'success':
+                     notification.style.backgroundColor = '#4ecdc4';
+                     break;
+                 case 'warning':
+                     notification.style.backgroundColor = '#ffa07a';
+                     break;
+                 case 'error':
+                     notification.style.backgroundColor = '#ff6b6b';
+                     break;
+                 default:
+                     notification.style.backgroundColor = '#45b7d1';
+             }
+             
+             notification.textContent = message;
+             document.body.appendChild(notification);
+             
+             // 3秒后自动移除
+             setTimeout(() => {
+                 notification.style.opacity = '0';
+                 setTimeout(() => {
+                     if (notification.parentNode) {
+                         notification.parentNode.removeChild(notification);
+                     }
+                 }, 300);
+             }, 3000);
+         }
+         
+         // 数据导出功能
+         function exportSimulationData() {
+             const exportData = {
+                 timestamp: new Date().toISOString(),
+                 simulationState: {
+                     status: simulationState,
+                     step: currentStep,
+                     speed: simulationSpeed
+                 },
+                 agents: agents.map(agent => ({
+                     id: agent.id,
+                     type: agent.type,
+                     position: agent.position,
+                     resources: agent.resources,
+                     risk: agent.risk,
+                     status: agent.status
+                 })),
+                 parameters: {
+                     agentCount: parseInt(document.getElementById('agentCount').value),
+                     floodIntensity: parseFloat(document.getElementById('floodIntensity').value),
+                     networkDensity: parseFloat(document.getElementById('networkDensity').value)
+                 },
+                 statistics: {
+                     activeAgents: document.getElementById('activeAgents').textContent,
+                     evacuatedCount: document.getElementById('evacuatedCount').textContent,
+                     helpActions: document.getElementById('helpActions').textContent
+                 }
+             };
+             
+             downloadJSON(exportData, `simulation_data_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.json`);
+             showNotification('仿真数据导出成功', 'success');
+         }
+         
+         function exportCharts() {
+             const chartsToExport = ['populationChart', 'behaviorChart', 'riskChart'];
+             const zip = new JSZip();
+             
+             chartsToExport.forEach(chartId => {
+                 const canvas = document.getElementById(chartId);
+                 if (canvas) {
+                     const imageData = canvas.toDataURL('image/png');
+                     const base64Data = imageData.split(',')[1];
+                     zip.file(`${chartId}.png`, base64Data, {base64: true});
+                 }
+             });
+             
+             zip.generateAsync({type: 'blob'}).then(function(content) {
+                 const link = document.createElement('a');
+                 link.href = URL.createObjectURL(content);
+                 link.download = `charts_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.zip`;
+                 link.click();
+                 showNotification('图表导出成功', 'success');
+             });
+         }
+         
+         function generateReport() {
+             const reportData = {
+                 title: '洪灾智能体仿真报告',
+                 generatedAt: new Date().toLocaleString('zh-CN'),
+                 summary: {
+                     totalSteps: currentStep,
+                     totalAgents: agents.length,
+                     activeAgents: document.getElementById('activeAgents').textContent,
+                     evacuatedCount: document.getElementById('evacuatedCount').textContent,
+                     helpActions: document.getElementById('helpActions').textContent
+                 },
+                 parameters: {
+                     agentCount: parseInt(document.getElementById('agentCount').value),
+                     floodIntensity: parseFloat(document.getElementById('floodIntensity').value),
+                     networkDensity: parseFloat(document.getElementById('networkDensity').value)
+                 },
+                 agentTypes: {
+                     normal: agents.filter(a => a.type === 'normal').length,
+                     vulnerable: agents.filter(a => a.type === 'vulnerable').length,
+                     helper: agents.filter(a => a.type === 'helper').length
+                 },
+                 riskDistribution: {
+                     low: agents.filter(a => a.risk < 0.3).length,
+                     medium: agents.filter(a => a.risk >= 0.3 && a.risk < 0.7).length,
+                     high: agents.filter(a => a.risk >= 0.7).length
+                 }
+             };
+             
+             // 生成HTML报告
+             const reportHTML = generateReportHTML(reportData);
+             downloadHTML(reportHTML, `simulation_report_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.html`);
+             showNotification('仿真报告生成成功', 'success');
+         }
+         
+         function exportScenario() {
+             const scenarioData = {
+                 timestamp: new Date().toISOString(),
+                 scenario: simulation_state?.scenario || {flood_zones: [], safe_zones: [], barriers: []},
+                 parameters: {
+                     agentCount: parseInt(document.getElementById('agentCount').value),
+                     floodIntensity: parseFloat(document.getElementById('floodIntensity').value),
+                     networkDensity: parseFloat(document.getElementById('networkDensity').value)
+                 },
+                 mapCenter: map ? map.getCenter() : null,
+                 mapZoom: map ? map.getZoom() : null
+             };
+             
+             downloadJSON(scenarioData, `scenario_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.json`);
+             showNotification('场景配置导出成功', 'success');
+         }
+         
+         // 辅助函数
+         function downloadJSON(data, filename) {
+             const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+             const link = document.createElement('a');
+             link.href = URL.createObjectURL(blob);
+             link.download = filename;
+             link.click();
+         }
+         
+         function downloadHTML(html, filename) {
+             const blob = new Blob([html], {type: 'text/html'});
+             const link = document.createElement('a');
+             link.href = URL.createObjectURL(blob);
+             link.download = filename;
+             link.click();
+         }
+         
+         function generateReportHTML(data) {
+             return `
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${data.title}</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', sans-serif; margin: 40px; line-height: 1.6; }
+        .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; }
+        .section { margin: 30px 0; }
+        .section h2 { color: #333; border-left: 4px solid #007bff; padding-left: 10px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .stat-card { background: #f8f9fa; padding: 15px; border-radius: 5px; border-left: 4px solid #007bff; }
+        .stat-value { font-size: 24px; font-weight: bold; color: #007bff; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>${data.title}</h1>
+        <p>生成时间: ${data.generatedAt}</p>
+    </div>
+    
+    <div class="section">
+        <h2>仿真概览</h2>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value">${data.summary.totalSteps}</div>
+                <div>仿真步数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">${data.summary.totalAgents}</div>
+                <div>智能体总数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">${data.summary.activeAgents}</div>
+                <div>活跃智能体</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">${data.summary.evacuatedCount}</div>
+                <div>疏散人数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">${data.summary.helpActions}</div>
+                <div>帮助行为</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>仿真参数</h2>
+        <table>
+            <tr><th>参数</th><th>值</th></tr>
+            <tr><td>智能体数量</td><td>${data.parameters.agentCount}</td></tr>
+            <tr><td>洪水强度</td><td>${data.parameters.floodIntensity}</td></tr>
+            <tr><td>社交网络密度</td><td>${data.parameters.networkDensity}</td></tr>
+        </table>
+    </div>
+    
+    <div class="section">
+        <h2>智能体类型分布</h2>
+        <table>
+            <tr><th>类型</th><th>数量</th></tr>
+            <tr><td>普通智能体</td><td>${data.agentTypes.normal}</td></tr>
+            <tr><td>脆弱智能体</td><td>${data.agentTypes.vulnerable}</td></tr>
+            <tr><td>帮助者</td><td>${data.agentTypes.helper}</td></tr>
+        </table>
+    </div>
+    
+    <div class="section">
+        <h2>风险等级分布</h2>
+        <table>
+            <tr><th>风险等级</th><th>数量</th></tr>
+            <tr><td>低风险 (< 0.3)</td><td>${data.riskDistribution.low}</td></tr>
+            <tr><td>中风险 (0.3-0.7)</td><td>${data.riskDistribution.medium}</td></tr>
+            <tr><td>高风险 (> 0.7)</td><td>${data.riskDistribution.high}</td></tr>
+        </table>
+    </div>
+</body>
+</html>
+             `;
+         }
+         
+         // 加载控制逻辑
+         function hideLoadingIndicator() {
+             const loadingIndicator = document.getElementById('loadingIndicator');
+             if (loadingIndicator) {
+                 loadingIndicator.style.opacity = '0';
+                 setTimeout(() => {
+                     loadingIndicator.style.display = 'none';
+                 }, 300);
+             }
+         }
+         
+         function showLoadingIndicator(message = '正在加载...') {
+             const loadingIndicator = document.getElementById('loadingIndicator');
+             if (loadingIndicator) {
+                 loadingIndicator.querySelector('p').textContent = message;
+                 loadingIndicator.style.display = 'flex';
+                 loadingIndicator.style.opacity = '1';
+             }
+         }
+         
+         // 页面加载完成后隐藏加载指示器
+         document.addEventListener('DOMContentLoaded', function() {
+             // 立即隐藏加载指示器，因为DOM已经加载完成
+             setTimeout(() => {
+                 hideLoadingIndicator();
+             }, 1000); // 延迟1秒以确保所有初始化完成
+             
+             // 等待所有资源加载完成后再次确保隐藏
+             window.addEventListener('load', function() {
+                 setTimeout(() => {
+                     hideLoadingIndicator();
+                 }, 500);
+             });
+         });
+         
+         // WebSocket连接事件处理（延迟绑定）
+         setTimeout(function() {
+             if (typeof window.socket !== 'undefined' && window.socket) {
+                 window.socket.on('connect', function() {
+                     console.log('Socket连接成功，隐藏加载指示器');
+                     hideLoadingIndicator();
+                 });
+                 
+                 window.socket.on('disconnect', function() {
+                     showLoadingIndicator('连接已断开，正在重连...');
+                 });
+             } else {
+                 console.log('Socket未初始化，直接隐藏加载指示器');
+                 hideLoadingIndicator();
+             }
+         }, 3000); // 延迟3秒等待socket初始化
+         
+         // 时间轴功能
+         let isSimulationPaused = false;
+         let maxSteps = 1000; // 默认最大步数，可以根据实际情况调整
+         
+         // 初始化时间轴
+         function initializeTimeline() {
+             const playPauseBtn = document.getElementById('playPauseBtn');
+             const resetBtn = document.getElementById('resetBtn');
+             const timelineThumb = document.getElementById('timelineThumb');
+             const timelineTrack = document.querySelector('.timeline-track');
+             
+             // 播放/暂停按钮事件
+             playPauseBtn.addEventListener('click', function() {
+                 toggleSimulation();
+             });
+             
+             // 重置按钮事件
+             resetBtn.addEventListener('click', function() {
+                 resetSimulation();
+             });
+             
+             // 速度控制器事件绑定
+             const speedSlider = document.getElementById('speedControl');
+             const speedValue = document.getElementById('speedValue');
+             const speedPresets = document.querySelectorAll('.speed-preset');
+             
+             // 速度滑块事件
+             if (speedSlider && speedValue) {
+                 speedSlider.addEventListener('input', function(e) {
+                     const speed = parseFloat(e.target.value);
+                     simulationSpeed = speed;
+                     speedValue.textContent = speed.toFixed(1) + 'x';
+                     updateSimulationSpeed(speed);
+                     
+                     // 更新预设按钮状态
+                     speedPresets.forEach(btn => {
+                         btn.classList.remove('active');
+                         if (parseFloat(btn.dataset.speed) === speed) {
+                             btn.classList.add('active');
+                         }
+                     });
+                 });
+             }
+             
+             // 速度预设按钮事件
+             speedPresets.forEach(btn => {
+                 btn.addEventListener('click', function() {
+                     const speed = parseFloat(this.dataset.speed);
+                     simulationSpeed = speed;
+                     
+                     if (speedSlider) speedSlider.value = speed;
+                     if (speedValue) speedValue.textContent = speed.toFixed(1) + 'x';
+                     
+                     updateSimulationSpeed(speed);
+                     
+                     // 更新按钮状态
+                     speedPresets.forEach(b => b.classList.remove('active'));
+                     this.classList.add('active');
+                 });
+             });
+             
+             // 时间轴拖拽功能
+             let isDragging = false;
+             
+             timelineThumb.addEventListener('mousedown', function(e) {
+                 isDragging = true;
+                 e.preventDefault();
+             });
+             
+             document.addEventListener('mousemove', function(e) {
+                 if (!isDragging) return;
+                 
+                 const rect = timelineTrack.getBoundingClientRect();
+                 const x = e.clientX - rect.left;
+                 const percentage = Math.max(0, Math.min(100, (x / rect.width) * 100));
+                 
+                 updateTimelinePosition(percentage);
+                 
+                 // 计算对应的步数并发送跳转命令
+                 const targetStep = Math.floor((percentage / 100) * maxSteps);
+                 jumpToStep(targetStep);
+             });
+             
+             document.addEventListener('mouseup', function() {
+                 isDragging = false;
+             });
+             
+             // 点击时间轴跳转
+             timelineTrack.addEventListener('click', function(e) {
+                 if (e.target === timelineThumb) return;
+                 
+                 const rect = timelineTrack.getBoundingClientRect();
+                 const x = e.clientX - rect.left;
+                 const percentage = (x / rect.width) * 100;
+                 
+                 updateTimelinePosition(percentage);
+                 
+                 const targetStep = Math.floor((percentage / 100) * maxSteps);
+                 jumpToStep(targetStep);
+             });
+         }
+         
+         // 更新时间轴位置
+         function updateTimelinePosition(percentage) {
+             const timelineProgress = document.getElementById('timelineProgress');
+             const timelineThumb = document.getElementById('timelineThumb');
+             
+             timelineProgress.style.width = percentage + '%';
+             timelineThumb.style.left = percentage + '%';
+         }
+         
+         // 更新时间轴显示
+        function updateTimeline(currentStep) {
+            const timelineStep = document.getElementById('timelineStep');
+            const percentage = maxSteps > 0 ? (currentStep / maxSteps) * 100 : 0;
+            
+            timelineStep.textContent = currentStep;
+            updateTimelinePosition(Math.min(100, percentage));
+        }
+        
+        // 智能体状态模态框功能
+        let allAgentsData = [];
+        let filteredAgentsData = [];
+        
+        // 显示所有智能体状态
+        function showAllAgentsStatus() {
+            const modal = new bootstrap.Modal(document.getElementById('agentStatusModal'));
+            modal.show();
+            
+            // 显示加载状态
+            document.getElementById('agentStatusLoading').style.display = 'block';
+            document.getElementById('agentStatusGrid').innerHTML = '';
+            
+            // 获取智能体数据
+            refreshAgentStatus();
+        }
+        
+        // 切换地图性能监控面板
+        function toggleMapPerformance() {
+            const panel = document.getElementById('mapPerformancePanel');
+            const btn = document.getElementById('mapPerformanceBtn');
+            
+            if (panel.style.display === 'none') {
+                panel.style.display = 'block';
+                btn.innerHTML = '<i class="fas fa-tachometer-alt"></i> 隐藏';
+                btn.classList.remove('btn-outline-info');
+                btn.classList.add('btn-info');
+            } else {
+                panel.style.display = 'none';
+                btn.innerHTML = '<i class="fas fa-tachometer-alt"></i> 监控';
+                btn.classList.remove('btn-info');
+                btn.classList.add('btn-outline-info');
+            }
+        }
+        
+        // 刷新智能体状态
+        function refreshAgentStatus() {
+            // 模拟获取智能体数据（实际应该从后端API获取）
+            setTimeout(() => {
+                // 生成模拟数据
+                allAgentsData = generateMockAgentData();
+                filteredAgentsData = [...allAgentsData];
+                
+                renderAgentCards();
+                document.getElementById('agentStatusLoading').style.display = 'none';
+            }, 1000);
+        }
+        
+        // 生成模拟智能体数据
+        function generateMockAgentData() {
+            const types = ['普通居民', '社区领袖', '救援人员'];
+            const statuses = ['正常', '疏散中', '已疏散', '帮助他人'];
+            const agents = [];
+            
+            for (let i = 1; i <= 30; i++) {
+                agents.push({
+                    id: `agent_${i}`,
+                    type: types[Math.floor(Math.random() * types.length)],
+                    status: statuses[Math.floor(Math.random() * statuses.length)],
+                    position: {
+                        x: Math.floor(Math.random() * 1000),
+                        y: Math.floor(Math.random() * 1000)
+                    },
+                    health: Math.floor(Math.random() * 100),
+                    energy: Math.floor(Math.random() * 100),
+                    social_connections: Math.floor(Math.random() * 10),
+                    help_count: Math.floor(Math.random() * 5),
+                    evacuation_time: Math.floor(Math.random() * 300)
+                });
+            }
+            
+            return agents;
+        }
+        
+        // 渲染智能体卡片
+        function renderAgentCards() {
+            const grid = document.getElementById('agentStatusGrid');
+            grid.innerHTML = '';
+            
+            filteredAgentsData.forEach(agent => {
+                const card = createAgentCard(agent);
+                grid.appendChild(card);
+            });
+        }
+        
+        // 创建智能体卡片
+        function createAgentCard(agent) {
+            const card = document.createElement('div');
+            card.className = 'agent-card';
+            
+            const statusClass = getStatusClass(agent.status);
+            
+            card.innerHTML = `
+                <div class="agent-card-header">
+                    <span class="agent-id">${agent.id}</span>
+                    <span class="agent-type">${agent.type}</span>
+                </div>
+                <div class="agent-status ${statusClass}">${agent.status}</div>
+                <div class="agent-details">
+                    <div class="detail-item">
+                        <span class="detail-label">健康状态:</span>
+                        <span>${agent.health}%</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">能量水平:</span>
+                        <span>${agent.energy}%</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">社交连接:</span>
+                        <span>${agent.social_connections}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">帮助次数:</span>
+                        <span>${agent.help_count}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">疏散时间:</span>
+                        <span>${agent.evacuation_time}s</span>
+                    </div>
+                </div>
+                <div class="agent-position">
+                    位置: (${agent.position.x}, ${agent.position.y})
+                </div>
+            `;
+            
+            return card;
+        }
+        
+        // 获取状态样式类
+        function getStatusClass(status) {
+            switch(status) {
+                case '正常': return 'status-normal';
+                case '疏散中': return 'status-evacuating';
+                case '已疏散': return 'status-evacuated';
+                case '帮助他人': return 'status-helping';
+                default: return 'status-normal';
+            }
+        }
+        
+        // 搜索和过滤功能
+        function initializeAgentFilters() {
+            const searchInput = document.getElementById('agentSearchInput');
+            const typeFilter = document.getElementById('agentTypeFilter');
+            const statusFilter = document.getElementById('agentStatusFilter');
+            
+            // 搜索功能
+            searchInput.addEventListener('input', filterAgents);
+            typeFilter.addEventListener('change', filterAgents);
+            statusFilter.addEventListener('change', filterAgents);
+        }
+        
+        // 过滤智能体
+        function filterAgents() {
+            const searchTerm = document.getElementById('agentSearchInput').value.toLowerCase();
+            const typeFilter = document.getElementById('agentTypeFilter').value;
+            const statusFilter = document.getElementById('agentStatusFilter').value;
+            
+            filteredAgentsData = allAgentsData.filter(agent => {
+                const matchesSearch = !searchTerm || 
+                    agent.id.toLowerCase().includes(searchTerm) ||
+                    agent.type.toLowerCase().includes(searchTerm) ||
+                    agent.status.toLowerCase().includes(searchTerm);
+                    
+                const matchesType = !typeFilter || agent.type === typeFilter;
+                const matchesStatus = !statusFilter || agent.status === statusFilter;
+                
+                return matchesSearch && matchesType && matchesStatus;
+            });
+            
+            renderAgentCards();
+        }
+         
+         // 更新仿真控件状态
+         function updateSimulationControls() {
+             const playPauseBtn = document.getElementById('playPauseBtn');
+             const icon = playPauseBtn.querySelector('i');
+             
+             if (isSimulationPaused) {
+                 icon.className = 'fas fa-play';
+             } else {
+                 icon.className = 'fas fa-pause';
+             }
+         }
+         
+         // 切换仿真状态
+         function toggleSimulation() {
+             const playPauseBtn = document.getElementById('playPauseBtn');
+             const icon = playPauseBtn.querySelector('i');
+             
+             isSimulationPaused = !isSimulationPaused;
+             
+             if (isSimulationPaused) {
+                 icon.className = 'fas fa-play';
+                 sendCommand('pause_simulation');
+             } else {
+                 icon.className = 'fas fa-pause';
+                 sendCommand('resume_simulation');
+             }
+         }
+         
+         // 重置仿真
+         function resetSimulation() {
+             const playPauseBtn = document.getElementById('playPauseBtn');
+             const icon = playPauseBtn.querySelector('i');
+             
+             isSimulationPaused = false;
+             icon.className = 'fas fa-pause';
+             
+             updateTimeline(0);
+             sendCommand('reset_simulation');
+         }
+         
+         // 跳转到指定步数
+         function jumpToStep(step) {
+             sendCommand('jump_to_step', { step: step });
+         }
+         
+         // 修改现有的handleSimulationUpdate函数以更新时间轴
+         const originalHandleSimulationUpdate = handleSimulationUpdate;
+         handleSimulationUpdate = function(data) {
+             originalHandleSimulationUpdate(data);
+             
+             if (data.type === 'step_update' && data.step !== undefined) {
+                 updateTimeline(data.step);
+                 
+                 // 动态调整最大步数
+                 if (data.maxSteps) {
+                     maxSteps = data.maxSteps;
+                 }
+             }
+         };
+         
+         // 侧边栏切换功能
+         let sidebarCollapsed = false;
+         
+         function initializeSidebar() {
+             const sidebarToggle = document.getElementById('sidebarToggle');
+             const controlSidebar = document.getElementById('controlSidebar');
+             
+             sidebarToggle.addEventListener('click', function() {
+                 toggleSidebar();
+             });
+         }
+         
+         function toggleSidebar() {
+             const controlSidebar = document.getElementById('controlSidebar');
+             const toggleIcon = document.querySelector('#sidebarToggle i');
+             
+             sidebarCollapsed = !sidebarCollapsed;
+             
+             if (sidebarCollapsed) {
+                 controlSidebar.classList.add('collapsed');
+                 toggleIcon.className = 'fas fa-chevron-right';
+             } else {
+                 controlSidebar.classList.remove('collapsed');
+                 toggleIcon.className = 'fas fa-chevron-left';
+             }
+         }
+         
+         // 页面加载完成后初始化时间轴和侧边栏
+         document.addEventListener('DOMContentLoaded', function() {
+            initializeTimeline();
+            initializeSidebar();
+            initializeAgentFilters();
+        });
+    </script>
+</body>
+</html>

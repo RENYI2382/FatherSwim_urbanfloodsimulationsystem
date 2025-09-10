@@ -1,0 +1,46 @@
+# AgentSociety官方基准测试配置文件
+# 用于HurricaneMobility基准测试
+
+llm:
+  # Silicon Flow配置 - 高性能AI模型平台
+  - api_key: "${SILICON_FLOW_API_KEY}"
+    model: "deepseek-ai/DeepSeek-V3"
+    provider: "siliconflow"
+    semaphore: 100
+    temperature: 0.3
+    max_tokens: 2048
+    timeout: 60
+    max_retries: 3
+
+# 环境配置
+env:
+  # 数据库配置
+  db:
+    enabled: true
+    type: "sqlite"
+    path: "data/agentsociety.db"
+  
+  # AgentSociety数据目录
+  home_dir: ".agentsociety-benchmark/agentsociety_data"
+  
+  # 日志配置
+  logging:
+    level: "INFO"
+    file: "logs/agentsociety.log"
+
+# 智能体配置
+agent:
+  hurricane_mobility:
+    enhanced_mode: true
+    use_llm: true
+    thresholds:
+      risk_assessment: 0.5
+      evacuation_decision: 0.6
+      mobility_planning: 0.4
+    social_influence_weight: 0.3
+
+# 系统配置
+system:
+  data_dir: "data"
+  results_dir: "results"
+  logs_dir: "logs"

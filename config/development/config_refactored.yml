@@ -1,0 +1,331 @@
+# 重构后的Hurricane Mobility Agent配置文件
+# 集成DeepSeek-R1模型和增强决策框架
+
+# 基础配置
+agent:
+  name: "RefactoredHurricaneAgent"
+  version: "2.0.0"
+  description: "基于文献驱动决策框架和DeepSeek-R1模型的重构智能体"
+
+# DeepSeek-R1模型配置
+deepseek:
+  enabled: true
+  api_key: "${SILICON_FLOW_API_KEY}"
+  base_url: "https://api.siliconflow.cn/v1/chat/completions"
+  model: "deepseek-ai/DeepSeek-R1"
+  temperature: 0.7
+  top_p: 0.9
+  max_tokens: 2048
+  timeout: 30
+
+# 决策框架配置
+decision_framework:
+  # 传统五维权重（向后兼容）
+  legacy_weights:
+    risk_perception: 0.35
+    self_efficacy: 0.25
+    social_influence: 0.20
+    cognitive_bias: 0.15
+    situational_factors: 0.05
+  
+  # 四维决策标准权重（基于DDABM论文）
+  four_dimensional_weights:
+    safety_concern: 0.40      # w₁: 安全性关注
+    information_trust: 0.25   # w₂: 信息信任
+    evacuation_cost: 0.20     # w₃: 疏散成本
+    property_attachment: 0.15 # w₄: 财产依恋
+  
+  # 动态权重调整开关
+  use_dynamic_weights: true
+  
+  # 风险阈值
+  risk_thresholds:
+    low: 0.3
+    medium: 0.6
+    high: 0.8
+    critical: 0.95
+  
+  # 决策阈值
+  decision_thresholds:
+    stay: 0.3
+    prepare: 0.5
+    evacuate: 0.7
+    emergency_evacuate: 0.9
+
+# 认知偏差参数
+cognitive_bias:
+  availability_heuristic: 0.3    # 可得性启发式
+  anchoring_effect: 0.2          # 锚定效应
+  loss_aversion: 0.4             # 损失厌恶
+  optimism_bias: 0.25            # 乐观偏差
+  social_proof: 0.35             # 社会认同
+
+# 疏散成本评估配置（w₃标准）
+evacuation_cost:
+  # 成本组件权重
+  cost_weights:
+    economic_cost: 0.30      # 经济成本权重
+    time_cost: 0.35          # 时间成本权重
+    reliability_cost: 0.20   # 可靠性成本权重
+    opportunity_cost: 0.15   # 机会成本权重
+  
+  # 经济成本参数
+  economic_factors:
+    fuel_cost_per_mile: 0.15     # 每英里燃油成本
+    accommodation_cost_per_day: 120  # 每日住宿成本
+    food_cost_per_day: 50        # 每日食物成本
+    lost_wages_per_day: 200      # 每日工资损失
+  
+  # 时间成本参数（BPR函数）
+  time_cost_factors:
+    free_flow_time_base: 1.0     # 自由流动时间基数
+    alpha: 0.15                  # BPR参数α
+    beta: 4.0                    # BPR参数β
+    value_of_time_per_hour: 25   # 每小时时间价值
+  
+  # 可靠性成本参数
+  reliability_factors:
+    base_reliability: 0.9        # 基础可靠性
+    weather_impact_factor: 0.3   # 天气影响因子
+    congestion_impact_factor: 0.2 # 拥堵影响因子
+    reliability_penalty_rate: 100 # 可靠性惩罚率
+  
+  # 机会成本参数
+  opportunity_factors:
+    work_importance_multiplier: 1.5  # 工作重要性乘数
+    family_event_multiplier: 2.0     # 家庭事件乘数
+    social_event_multiplier: 0.8     # 社交事件乘数
+
+# 财产依恋评估配置（w₄标准）
+property_attachment:
+  # 依恋组件权重
+  attachment_weights:
+    ownership: 0.30              # 房屋所有权权重
+    residence_duration: 0.25     # 居住年限权重
+    work_responsibility: 0.20    # 工作职责权重
+    property_value: 0.15         # 财产价值权重
+    emotional_factors: 0.10      # 情感因素权重
+  
+  # 房屋所有权类型影响
+  ownership_types:
+    own_outright: 1.0           # 完全拥有
+    own_mortgage: 0.85          # 按揭拥有
+    rent: 0.25                  # 租房
+    family_owned: 0.70          # 家族房产
+  
+  # 工作类型对依恋的影响
+  work_types:
+    essential_worker: 0.95      # 关键岗位工作者
+    business_owner: 0.90        # 企业主
+    remote_worker: 0.30         # 远程工作者
+    retired: 0.60               # 退休人员
+    unemployed: 0.20            # 无业人员
+  
+  # 恐慌程度对依恋的影响
+  panic_reduction_factors:
+    low: 0.1                    # 低恐慌：依恋影响减少10%
+    medium: 0.25                # 中等恐慌：依恋影响减少25%
+    high: 0.45                  # 高恐慌：依恋影响减少45%
+
+# 信息信任评估配置（w₂标准）
+information_trust:
+  # 信任组件权重
+  trust_weights:
+    source_credibility: 0.30      # 信息源可信度权重
+    information_consistency: 0.25 # 信息一致性权重
+    personal_experience: 0.20     # 个人经验权重
+    social_validation: 0.15       # 社会验证权重
+    timeliness: 0.05             # 时效性权重
+    clarity: 0.05                # 清晰度权重
+  
+  # 信息源可信度基础分数
+  source_credibility:
+    official_government: 0.85
+    emergency_services: 0.90
+    weather_service: 0.88
+    media_news: 0.65
+    social_media: 0.35
+    family_friends: 0.70
+    neighbors: 0.60
+    workplace: 0.55
+  
+  # 人口统计学对信任的影响
+  demographic_trust_factors:
+    education:
+      low: 0.85                 # 低教育水平更信任权威
+      medium: 1.0
+      high: 1.15                # 高教育水平更理性分析
+    age:
+      young: 0.90               # 年轻人更怀疑权威
+      middle: 1.0
+      elderly: 1.10             # 老年人更信任权威
+    income:
+      low: 0.95
+      medium: 1.0
+      high: 1.05                # 高收入群体信息获取能力强
+
+# 智能体档案默认配置
+agent_profile:
+  # 人口统计学特征
+  age_range: [18, 80]
+  education_levels: ["low", "medium", "high"]
+  income_levels: ["low", "medium", "high"]
+  
+  # 家庭特征
+  family_size_range: [1, 6]
+  has_children_probability: 0.4
+  has_elderly_probability: 0.2
+  
+  # 资源和能力
+  has_vehicle_probability: 0.8
+  financial_resources_range: [0.2, 1.0]
+  social_network_range: [0.3, 0.9]
+  tech_savvy_range: [0.4, 0.9]
+  
+  # 心理特征
+  risk_aversion_range: [0.2, 0.8]
+  optimism_range: [0.3, 0.7]
+  loss_aversion_range: [0.4, 0.8]
+  social_conformity_range: [0.3, 0.7]
+  anxiety_level_range: [0.2, 0.8]        # 焦虑水平（恐慌计算）
+  
+  # 经验和知识
+  hurricane_experience_range: [0.0, 0.8]
+  evacuation_experience_range: [0.0, 0.6]
+  local_knowledge_range: [0.4, 0.9]
+  disaster_knowledge_range: [0.2, 0.8]    # 灾害知识水平
+  
+  # 财产相关参数（w₄标准）
+  ownership_types: ["own_outright", "own_mortgage", "rent", "family_owned"]
+  ownership_type_probabilities: [0.3, 0.4, 0.25, 0.05]
+  residence_duration_range: [1, 30]       # 居住年限范围
+  home_value_levels: ["low", "medium", "high"]
+  home_value_probabilities: [0.3, 0.5, 0.2]
+  has_mortgage_probability: 0.6
+  has_property_insurance_probability: 0.8
+  has_valuable_items_probability: 0.3
+  has_family_heirlooms_probability: 0.2
+  has_pets_probability: 0.4
+  has_garden_probability: 0.3
+  property_value_levels: ["low", "medium", "high"]
+  property_value_probabilities: [0.3, 0.5, 0.2]
+  
+  # 工作相关参数（w₃和w₄标准）
+  work_types: ["essential_worker", "business_owner", "remote_worker", "retired", "unemployed"]
+  work_type_probabilities: [0.15, 0.1, 0.3, 0.2, 0.25]
+  work_responsibility_probability: 0.3     # 有工作职责要求的概率
+  is_business_owner_probability: 0.1
+  
+  # 信任相关参数（w₂标准）
+  government_trust_range: [0.3, 0.9]      # 政府信任度
+  social_orientation_range: [0.3, 0.8]    # 社交倾向
+  conformity_range: [0.2, 0.8]           # 从众倾向
+  
+  # 社区参与参数（w₄标准）
+  community_involvement_range: [0.2, 0.8]  # 社区参与度
+  neighbor_relationships_range: [0.3, 0.9] # 邻里关系
+  emotional_significance_range: [0.2, 0.8] # 情感意义
+
+# 社会环境配置
+social_context:
+  # 默认社会影响参数
+  default_community_cohesion: 0.5
+  family_influence_weight: 0.3
+  neighbor_influence_weight: 0.25
+  official_influence_weight: 0.15
+  media_influence_weight: 0.1
+  
+  # 疏散令影响
+  mandatory_evacuation_boost: 0.8
+  official_recommendation_boost: 0.4
+
+# 移动模式配置
+mobility:
+  # 交通方式偏好
+  travel_modes:
+    driving:
+      speed_factor: 1.0
+      capacity_factor: 1.0
+      weather_sensitivity: 0.3
+    walking:
+      speed_factor: 0.3
+      capacity_factor: 0.2
+      weather_sensitivity: 0.8
+    public_transport:
+      speed_factor: 0.6
+      capacity_factor: 0.8
+      weather_sensitivity: 0.6
+  
+  # 目的地选择
+  destination_preferences:
+    evacuation:
+      safe_zones: [1, 2, 3]
+      family_locations: [4, 5]
+      public_shelters: [6, 7, 8]
+    normal:
+      home_weight: 0.4
+      work_weight: 0.3
+      social_weight: 0.3
+
+# 环境配置
+environment:
+  # 天气阈值
+  weather_thresholds:
+    wind_speed:
+      low: 39
+      medium: 74
+      high: 96
+      extreme: 130
+    storm_surge:
+      low: 3
+      medium: 6
+      high: 12
+      extreme: 18
+  
+  # 交通拥堵模型
+  traffic_congestion:
+    peak_hours: [7, 8, 9, 17, 18, 19]
+    peak_congestion: 0.8
+    normal_congestion: 0.4
+    night_congestion: 0.2
+
+# 日志配置
+logging:
+  level: "INFO"
+  file: "refactored_agent.log"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  max_file_size: "10MB"
+  backup_count: 5
+
+# 性能配置
+performance:
+  # 异步处理
+  max_concurrent_requests: 10
+  request_timeout: 30
+  retry_attempts: 3
+  
+  # 缓存配置
+  enable_caching: true
+  cache_ttl: 300  # 5分钟
+  max_cache_size: 1000
+
+# 实验配置
+experiment:
+  # A/B测试
+  enable_ab_testing: false
+  test_groups: ["control", "deepseek", "enhanced"]
+  
+  # 数据收集
+  collect_detailed_logs: true
+  save_decision_traces: true
+  export_format: "json"
+
+# 安全配置
+security:
+  # API密钥管理
+  mask_api_keys_in_logs: true
+  api_key_rotation_days: 30
+  
+  # 数据隐私
+  anonymize_personal_data: true
+  data_retention_days: 90
