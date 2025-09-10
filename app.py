@@ -131,7 +131,12 @@ if missing_vars:
 # 路由定义
 @app.route('/')
 def index():
-    """首页"""
+    """首页 - 导览页面"""
+    return send_from_directory('.', 'index.html')
+
+@app.route('/system')
+def system_main():
+    """系统主页面"""
     return render_template('index.html')
 
 @app.route('/dashboard')

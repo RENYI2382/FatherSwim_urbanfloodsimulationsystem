@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌊 FatherSwim - 智能洪灾仿真系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 800px;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .logo {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .description {
+            font-size: 1rem;
+            margin-bottom: 40px;
+            line-height: 1.6;
+            opacity: 0.8;
+        }
+        
+        .nav-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .nav-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 25px;
+            border-radius: 15px;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(5px);
+        }
+        
+        .nav-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.25);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .nav-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            display: block;
+        }
+        
+        .nav-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+        
+        .nav-card p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            line-height: 1.4;
+        }
+        
+        .start-btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(238, 90, 36, 0.4);
+        }
+        
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(238, 90, 36, 0.6);
+        }
+        
+        .footer {
+            margin-top: 30px;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                margin: 20px;
+                padding: 30px 20px;
+            }
+            
+            .logo {
+                font-size: 3rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .nav-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🌊</div>
+        <h1>FatherSwim</h1>
+        <div class="subtitle">智能洪灾仿真系统</div>
+        <div class="description">
+            基于多智能体建模(ABM)的智能洪灾仿真系统，专为洪灾场景下的应急管理和决策支持而设计。
+            集成了先进的可视化技术、实时仿真引擎和交互式地图编辑功能。
+        </div>
+        
+        <div class="nav-grid">
+            <a href="/system" class="nav-card">
+                <span class="icon">🏠</span>
+                <h3>系统主页</h3>
+                <p>进入系统主界面，开始使用仿真功能</p>
+            </a>
+            
+            <a href="/interactive_simulation" class="nav-card">
+                <span class="icon">🎮</span>
+                <h3>交互式仿真</h3>
+                <p>实时交互式洪灾仿真和智能体行为分析</p>
+            </a>
+            
+            <a href="/dashboard" class="nav-card">
+                <span class="icon">📊</span>
+                <h3>数据仪表盘</h3>
+                <p>查看仿真数据、统计分析和可视化图表</p>
+            </a>
+            
+            <a href="/enhanced_dashboard" class="nav-card">
+                <span class="icon">📈</span>
+                <h3>增强仪表盘</h3>
+                <p>高级数据分析和深度可视化功能</p>
+            </a>
+            
+            <a href="/map_management" class="nav-card">
+                <span class="icon">🗺️</span>
+                <h3>地图管理</h3>
+                <p>上传、编辑和管理仿真地图数据</p>
+            </a>
+            
+            <a href="/showcase" class="nav-card">
+                <span class="icon">🎯</span>
+                <h3>项目展示</h3>
+                <p>查看项目功能演示和技术特性</p>
+            </a>
+        </div>
+        
+        <a href="/system" class="start-btn">
+            🚀 开始使用系统
+        </a>
+        
+        <div class="footer">
+            <p>© 2024 FatherSwim Team | 基于差序格局理论的城市洪灾智能体仿真系统</p>
+        </div>
+    </div>
+</body>
+</html>
