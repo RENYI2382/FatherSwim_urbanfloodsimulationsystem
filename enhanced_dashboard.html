@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>增强版仪表盘 - FatherSwim 智能洪灾仿真系统</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .header {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .nav {
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+        
+        .logo {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-decoration: none;
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .nav-link {
+            color: white;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.1);
+            font-size: 0.9rem;
+        }
+        
+        .nav-link:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .page-header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .page-header h1 {
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .page-header p {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .control-panel {
+            background: rgba(255,255,255,0.95);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-label {
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .control-select, .control-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            font-size: 0.9rem;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .metric-card {
+            background: rgba(255,255,255,0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+        }
+        
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .metric-icon {
+            font-size: 1.5rem;
+            color: #667eea;
+        }
+        
+        .metric-trend {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+        
+        .trend-up {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .trend-down {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-size: 0.85rem;
+        }
+        
+        .charts-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .chart-panel {
+            background: rgba(255,255,255,0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .chart-title {
+            font-size: 1.2rem;
+            color: #333;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .chart-options {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .chart-btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+        }
+        
+        .chart-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .chart-canvas {
+            max-height: 350px;
+        }
+        
+        .analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+        }
+        
+        .analysis-panel {
+            background: rgba(255,255,255,0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .analysis-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .analysis-item:last-child {
+            border-bottom: none;
+        }
+        
+        .analysis-name {
+            color: #333;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .analysis-value {
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .progress-container {
+            margin-top: 8px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        
+        .demo-notice {
+            background: linear-gradient(45deg, #fff3cd, #ffeaa7);
+            border: 1px solid #ffeaa7;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #856404;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-active {
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-warning {
+            background: #ffc107;
+        }
+        
+        .status-error {
+            background: #dc3545;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        @media (max-width: 1200px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .nav {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .control-panel {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .page-header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .analysis-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <nav class="nav">
+            <a href="index.html" class="logo">
+                <i class="fas fa-water"></i> FatherSwim
+            </a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">
+                    <i class="fas fa-home"></i> 主页
+                </a>
+                <a href="system.html" class="nav-link">
+                    <i class="fas fa-cog"></i> 系统
+                </a>
+                <a href="interactive_simulation.html" class="nav-link">
+                    <i class="fas fa-play"></i> 仿真
+                </a>
+                <a href="dashboard.html" class="nav-link">
+                    <i class="fas fa-tachometer-alt"></i> 仪表盘
+                </a>
+            </div>
+        </nav>
+    </div>
+    
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-chart-line"></i> 增强版数据仪表盘</h1>
+            <p>高级数据分析、实时监控和智能预测</p>
+        </div>
+        
+        <div class="demo-notice">
+            <i class="fas fa-info-circle"></i>
+            <strong>增强版静态展示：</strong> 当前显示高级模拟数据和交互功能。完整的AI分析功能需要运行Flask应用。
+        </div>
+        
+        <div class="control-panel">
+            <div class="control-group">
+                <span class="control-label">时间范围:</span>
+                <select class="control-select" id="timeRange">
+                    <option value="1h">最近1小时</option>
+                    <option value="6h">最近6小时</option>
+                    <option value="24h" selected>最近24小时</option>
+                    <option value="7d">最近7天</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <span class="control-label">区域筛选:</span>
+                <select class="control-select" id="regionFilter">
+                    <option value="all" selected>全部区域</option>
+                    <option value="zone-a">A区域</option>
+                    <option value="zone-b">B区域</option>
+                    <option value="zone-c">C区域</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <span class="control-label">更新频率:</span>
+                <select class="control-select" id="updateFreq">
+                    <option value="5">5秒</option>
+                    <option value="10" selected>10秒</option>
+                    <option value="30">30秒</option>
+                    <option value="60">1分钟</option>
+                </select>
+            </div>
+            
+            <button class="refresh-btn" onclick="refreshData()">
+                <i class="fas fa-sync-alt"></i> 刷新数据
+            </button>
+        </div>
+        
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="metric-trend trend-up">
+                        <i class="fas fa-arrow-up"></i> +15.2%
+                    </div>
+                </div>
+                <div class="metric-value">2,847</div>
+                <div class="metric-label">
+                    <span class="status-indicator status-active"></span>
+                    活跃智能体
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="metric-trend trend-up">
+                        <i class="fas fa-arrow-up"></i> +4.7%
+                    </div>
+                </div>
+                <div class="metric-value">94.2%</div>
+                <div class="metric-label">
+                    <span class="status-indicator status-active"></span>
+                    疏散成功率
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="metric-trend trend-down">
+                        <i class="fas fa-arrow-down"></i> -12.3%
+                    </div>
+                </div>
+                <div class="metric-value">3.4分钟</div>
+                <div class="metric-label">
+                    <span class="status-indicator status-active"></span>
+                    平均响应时间
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <div class="metric-trend trend-up">
+                        <i class="fas fa-arrow-up"></i> +8.9%
+                    </div>
+                </div>
+                <div class="metric-value">0.87</div>
+                <div class="metric-label">
+                    <span class="status-indicator status-active"></span>
+                    AI决策准确率
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon">
+                        <i class="fas fa-network-wired"></i>
+                    </div>
+                    <div class="metric-trend trend-up">
+                        <i class="fas fa-arrow-up"></i> +6.1%
+                    </div>
+                </div>
+                <div class="metric-value">0.79</div>
+                <div class="metric-label">
+                    <span class="status-indicator status-warning"></span>
+                    网络连通性
+                </div>
+            </div>
+            
+            <div class="metric-card">
+                <div class="metric-header">
+                    <div class="metric-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="metric-trend trend-down">
+                        <i class="fas fa-arrow-down"></i> -25.4%
+                    </div>
+                </div>
+                <div class="metric-value">12</div>
+                <div class="metric-label">
+                    <span class="status-indicator status-error"></span>
+                    系统警告
+                </div>
+            </div>
+        </div>
+        
+        <div class="charts-container">
+            <div class="chart-panel">
+                <div class="chart-header">
+                    <div class="chart-title">
+                        <i class="fas fa-chart-area"></i>
+                        实时性能监控
+                    </div>
+                    <div class="chart-options">
+                        <button class="chart-btn active" onclick="switchChart('performance')">性能</button>
+                        <button class="chart-btn" onclick="switchChart('traffic')">流量</button>
+                        <button class="chart-btn" onclick="switchChart('errors')">错误</button>
+                    </div>
+                </div>
+                <canvas id="performanceChart" class="chart-canvas"></canvas>
+            </div>
+            
+            <div class="chart-panel">
+                <div class="chart-header">
+                    <div class="chart-title">
+                        <i class="fas fa-chart-pie"></i>
+                        资源分配
+                    </div>
+                </div>
+                <canvas id="resourceChart" class="chart-canvas"></canvas>
+            </div>
+        </div>
+        
+        <div class="analysis-grid">
+            <div class="analysis-panel">
+                <div class="chart-title">
+                    <i class="fas fa-microscope"></i>
+                    深度分析指标
+                </div>
+                
+                <div class="analysis-item">
+                    <div class="analysis-name">
+                        <i class="fas fa-project-diagram"></i>
+                        网络拓扑复杂度
+                    </div>
+                    <div class="analysis-value">0.73</div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 73%"></div>
+                    </div>
+                </div>
+                
+                <div class="analysis-item">
+                    <div class="analysis-name">
+                        <i class="fas fa-balance-scale"></i>
+                        负载均衡指数
+                    </div>
+                    <div class="analysis-value">0.68</div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 68%"></div>
+                    </div>
+                </div>
+                
+                <div class="analysis-item">
+                    <div class="analysis-name">
+                        <i class="fas fa-sync"></i>
+                        系统同步率
+                    </div>
+                    <div class="analysis-value">0.91</div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 91%"></div>
+                    </div>
+                </div>
+                
+                <div class="analysis-item">
+                    <div class="analysis-name">
+                        <i class="fas fa-shield-virus"></i>
+                        异常检测准确率
+                    </div>
+                    <div class="analysis-value">0.85</div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 85%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="analysis-panel">
+                <div class="chart-title">
+                    <i class="fas fa-robot"></i>
+                    AI智能分析
+                </div>
+                
+                <div class="analysis-item">
+                    <div class="analysis-name">
+                        <i class="fas fa-eye"></i>
+                        模式识别精度
+                    </div>
+                    <div class="analysis-value">96.7%</div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 96.7%"></div>
+                    </div>
+                </div>
+                
+                <div class="analysis-item">
+                    <div class="analysis-name">
+                        <i class="fas fa-crystal-ball"></i>
+                        预测准确度
+                    </div>
+                    <div class="analysis-value">89.3%</div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 89.3%"></div>
+                    </div>
+                </div>
+                
+                <div class="analysis-item">
+                    <div class="analysis-name">
+                        <i class="fas fa-lightbulb"></i>
+                        智能推荐匹配度
+                    </div>
+                    <div class="analysis-value">92.1%</div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 92.1%"></div>
+                    </div>
+                </div>
+                
+                <div class="analysis-item">
+                    <div class="analysis-name">
+                        <i class="fas fa-cogs"></i>
+                        自动优化效率
+                    </div>
+                    <div class="analysis-value">87.5%</div>
+                </div>
+                <div class="progress-container">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 87.5%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="analysis-panel">
+                <div class="chart-title">
+                    <i class="fas fa-chart-bar"></i>
+                    区域效率对比
+                </div>
+                <canvas id="regionEfficiencyChart" class="chart-canvas"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 性能监控图表
+        const performanceCtx = document.getElementById('performanceChart').getContext('2d');
+        const performanceChart = new Chart(performanceCtx, {
+            type: 'line',
+            data: {
+                labels: Array.from({length: 20}, (_, i) => {
+                    const time = new Date();
+                    time.setMinutes(time.getMinutes() - (19 - i));
+                    return time.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'});
+                }),
+                datasets: [{
+                    label: 'CPU使用率',
+                    data: [65, 68, 72, 69, 75, 78, 73, 71, 76, 79, 82, 78, 75, 73, 77, 80, 76, 74, 78, 81],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }, {
+                    label: '内存使用率',
+                    data: [45, 47, 49, 52, 48, 51, 53, 50, 54, 56, 58, 55, 52, 49, 53, 57, 54, 51, 55, 59],
+                    borderColor: '#764ba2',
+                    backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 资源分配饼图
+        const resourceCtx = document.getElementById('resourceChart').getContext('2d');
+        new Chart(resourceCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['计算资源', '存储资源', '网络带宽', '缓存空间'],
+                datasets: [{
+                    data: [35, 25, 25, 15],
+                    backgroundColor: [
+                        '#667eea',
+                        '#764ba2',
+                        '#28a745',
+                        '#ffc107'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+        
+        // 区域效率对比图表
+        const regionEfficiencyCtx = document.getElementById('regionEfficiencyChart').getContext('2d');
+        new Chart(regionEfficiencyCtx, {
+            type: 'radar',
+            data: {
+                labels: ['响应速度', '疏散效率', '资源利用', '协调能力', '安全性'],
+                datasets: [{
+                    label: 'A区域',
+                    data: [85, 92, 78, 88, 95],
+                    borderColor: '#667eea',
+                    backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                    pointBackgroundColor: '#667eea'
+                }, {
+                    label: 'B区域',
+                    data: [78, 85, 92, 82, 88],
+                    borderColor: '#764ba2',
+                    backgroundColor: 'rgba(118, 75, 162, 0.2)',
+                    pointBackgroundColor: '#764ba2'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100
+                    }
+                }
+            }
+        });
+        
+        // 图表切换功能
+        function switchChart(type) {
+            const buttons = document.querySelectorAll('.chart-btn');
+            buttons.forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // 这里可以添加切换图表数据的逻辑
+            console.log('切换到:', type);
+        }
+        
+        // 刷新数据功能
+        function refreshData() {
+            const btn = document.querySelector('.refresh-btn');
+            const icon = btn.querySelector('i');
+            
+            icon.style.animation = 'spin 1s linear';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                icon.style.animation = '';
+                btn.disabled = false;
+                
+                // 模拟数据更新
+                updateMetrics();
+            }, 1000);
+        }
+        
+        // 更新指标数据
+        function updateMetrics() {
+            const metricValues = document.querySelectorAll('.metric-value');
+            metricValues.forEach(metric => {
+                const currentText = metric.textContent;
+                if (currentText.includes('%')) {
+                    const currentValue = parseFloat(currentText);
+                    const newValue = Math.max(0, Math.min(100, currentValue + (Math.random() - 0.5) * 5));
+                    metric.textContent = newValue.toFixed(1) + '%';
+                } else if (currentText.includes('分钟')) {
+                    const currentValue = parseFloat(currentText);
+                    const newValue = Math.max(0.1, currentValue + (Math.random() - 0.5) * 0.5);
+                    metric.textContent = newValue.toFixed(1) + '分钟';
+                } else if (!isNaN(parseFloat(currentText))) {
+                    const currentValue = parseFloat(currentText);
+                    if (currentValue < 10) {
+                        const newValue = Math.max(0, currentValue + (Math.random() - 0.5) * 0.2);
+                        metric.textContent = newValue.toFixed(2);
+                    } else {
+                        const newValue = Math.max(0, currentValue + (Math.random() - 0.5) * 100);
+                        metric.textContent = Math.round(newValue).toLocaleString();
+                    }
+                }
+            });
+        }
+        
+        // 页面加载动画
+        window.addEventListener('load', function() {
+            const elements = document.querySelectorAll('.metric-card, .chart-panel, .analysis-panel');
+            elements.forEach((element, index) => {
+                element.style.opacity = '0';
+                element.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    element.style.transition = 'all 0.6s ease';
+                    element.style.opacity = '1';
+                    element.style.transform = 'translateY(0)';
+                }, index * 50);
+            });
+        });
+        
+        // 自动刷新数据
+        setInterval(() => {
+            const updateFreq = document.getElementById('updateFreq').value;
+            updateMetrics();
+        }, 10000);
+        
+        // 添加旋转动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
